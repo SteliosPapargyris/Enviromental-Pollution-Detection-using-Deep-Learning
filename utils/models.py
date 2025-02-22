@@ -87,3 +87,15 @@ class Classifier(nn.Module):
         z = self.softmax(z)  # Apply softmax to get class probabilities
 
         return z
+
+
+    # def forward(self, x):
+    #     x = self.pool1(F.relu(self.bn1(self.conv1(x))))
+    #     x = self.pool2(F.relu(self.bn2(self.conv2(x))))
+    #     x = self.pool3(F.relu(self.bn3(self.conv3(x))))
+    #
+    #     x = x.view(x.size(0), -1)  # Flatten for fully connected layer
+    #     x = self.fc1(x)
+    #     x = self.softmax(x)  # Apply softmax to get class probabilities
+    #
+    #     return x

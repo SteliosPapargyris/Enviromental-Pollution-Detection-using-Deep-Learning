@@ -33,9 +33,11 @@ for chip_number in range(1, 5):
     current_path = f'{base_path}/{chip_number}.csv'
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data(file_path=current_path)
+    # Load and preprocess raw data
+    X_train, y_train, X_val, y_val, X_test, y_test, X_denoised_train, X_denoised_val, X_denoised_test, label_encoder = load_and_preprocess_data(file_path=current_path)
 
-    train_loader, val_loader, test_loader = create_dataloaders(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)
+    # Create data loaders for raw data
+    train_loader, val_loader, test_loader, _, _, _ = create_dataloaders(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)
     conv_layers = 'enc_dec'
 
     # Initialize ConvDenoiser model
@@ -56,7 +58,7 @@ for chip_number in range(1, 5):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True)
 
     # Train the model on the current chip
-    model_denoiser, training_losses, validation_losses = train_encoder_decoder(
+    model_denoiser, training_losses, validation_losses, noise_factor, X_denoised_train, X_denoised_val, X_denoised_test = train_encoder_decoder(
         epochs=num_epochs,
         train_loader=train_loader,
         val_loader=val_loader,
@@ -70,10 +72,10 @@ for chip_number in range(1, 5):
     )
 
     # Plot training and validation losses
-    plot_train_and_val_losses(training_losses, validation_losses, 'classifier_model', chip_number=chip_number)
+    plot_train_and_val_losses(training_losses, validation_losses, 'encoder_decoder_model', chip_number=chip_number)
 
     # Evaluate the model on the test set
-    avg_test_loss = evaluate_encoder_decoder(
+    avg_test_loss, X_denoised_test = evaluate_encoder_decoder(
         model_encoder_decoder=model_denoiser,
         data_loader=test_loader,
         criterion=criterion,
@@ -84,6 +86,10 @@ for chip_number in range(1, 5):
         chip_number=chip_number
     )
 
+    # Create data loaders for raw data
+    _, _, _, denoised_train_loader, denoised_val_loader, denoised_test_loader = create_dataloaders(batch_size=batch_size, X_denoised_train=X_denoised_train,
+                                                                        y_train=y_train, X_denoised_val=X_denoised_val, y_val=y_val, X_denoised_test=X_denoised_test, y_test=y_test)
+
     # Define loss function, optimizer, and scheduler
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model_classifier.parameters(), lr=learning_rate)
@@ -92,15 +98,15 @@ for chip_number in range(1, 5):
     # Train the model on the current chip
     model_classifier, training_losses, validation_losses = train_classifier(
         epochs=num_epochs,
-        train_loader=train_loader,
-        val_loader=val_loader,
+        train_loader=denoised_train_loader,
+        val_loader=denoised_val_loader,
         optimizer=optimizer,
         criterion=criterion,
         scheduler=scheduler,
         model_classifier=model_classifier,
         device=device,
         model_classifier_name='classifier_model',
-        chip_number=chip_number
+        chip_number=chip_number,
     )
 
     # Plot training and validation losses

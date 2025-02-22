@@ -69,6 +69,10 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     X = np.where(X == -np.inf, finite_min, X)
     X = np.where(X == np.inf, finite_max, X)
 
+    X = X + X * 0.02
+
+    # TODO: Do with 5% and then with 10%
+
     chip_column = "Chip"
     class_column = "Class"
     target_class = 4
@@ -85,6 +89,8 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     mean_values = mean_values.to_numpy().reshape(1, -1)  # Shape (1, num_features)
     std_values = std_values.to_numpy().reshape(1, -1)  # Shape (1, num_features)
 
+    # TODO --> noise to test set!
+
     # Identify rows where class is NOT 4
     exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
 
@@ -95,6 +101,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     X = X.reshape(-1, 1, 32)
 
     return X, y, label_encoder
+
 
 
 # Load and preprocess test data

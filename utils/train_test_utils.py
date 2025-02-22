@@ -2,25 +2,28 @@ import torch
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, precision_score, recall_score, f1_score
 import pandas as pd
+from torch.utils.data import TensorDataset, DataLoader
 
 
-def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name, chip_number=1, noise_factor=0.01):
+def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name, chip_number=1, noise_factor=0.02):
     early_stopping_counter = 0
     model_encoder_decoder.to(device)
     best_val_loss = float('inf')
     training_losses = []
     validation_losses = []
 
+    denoised_train_list, denoised_val_list = [], []
+
     for epoch in range(epochs):
+        denoised_train_list = []
+        denoised_val_list = []
+
         # Training phase
         model_encoder_decoder.train()
         total_train_loss = 0
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
 
-            # noisy_inputs = noisy_inputs.to(device)
-            labels = labels.long()
-            # add random noise to the input data
             noisy_inputs = inputs + noise_factor * torch.randn(*inputs.shape, device=device)
 
             optimizer.zero_grad()
@@ -35,6 +38,8 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
             loss.backward()
             optimizer.step()
             total_train_loss += loss.item()
+
+            denoised_train_list.append(denoised_inputs.cpu())
 
         avg_train_loss = total_train_loss / len(train_loader)
         training_losses.append(avg_train_loss)
@@ -56,6 +61,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
                 loss = criterion(denoised_inputs, inputs)
                 total_val_loss += loss.item()
 
+                denoised_val_list.append(denoised_inputs.cpu())
         avg_val_loss = total_val_loss / len(val_loader)
         validation_losses.append(avg_val_loss)
         print(f'Epoch {epoch} - Validation Loss: {avg_val_loss:.6f}')
@@ -84,19 +90,25 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
 
         print("\n")
 
-    return model_encoder_decoder, training_losses, validation_losses
+    # Convert lists to numpy arrays
+    X_denoised_train = torch.cat(denoised_train_list, dim=0).detach().cpu().numpy()
+    X_denoised_val = torch.cat(denoised_val_list, dim=0).detach().cpu().numpy()
+    X_denoised_test = None  # Test data will be denoised separately
 
+    return model_encoder_decoder, training_losses, validation_losses, noise_factor, X_denoised_train, X_denoised_val, X_denoised_test
 
-def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criterion, label_encoder, model_name, conv_layers, chip_number):
+def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criterion, label_encoder, model_name, conv_layers, chip_number): # TODO: add noise factor
     model_encoder_decoder.eval()
     model_encoder_decoder.to(device)
     total_test_loss = 0
+
+    denoised_test_list = []
 
     with torch.no_grad():
         for inputs, _ in data_loader:
             inputs = inputs.to(device)
 
-            noise_factor = 0.01
+            noise_factor = 0.02
             noisy_inputs = inputs + noise_factor * torch.randn(*inputs.shape, device=device)
 
             denoised_inputs = model_encoder_decoder(noisy_inputs)[0]
@@ -105,14 +117,18 @@ def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criteri
             loss = criterion(denoised_inputs, inputs)
             total_test_loss += loss.item()
 
+            denoised_test_list.append(denoised_inputs.cpu().detach())
 
     avg_test_loss = total_test_loss / len(data_loader)
     print(f'Average Test Loss: {avg_test_loss:.6f}')
 
-    return avg_test_loss
+    # Convert stored denoised test data into a NumPy array
+    X_denoised_test = torch.cat(denoised_test_list, dim=0).numpy()
+
+    return avg_test_loss, X_denoised_test
 
 
-def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_classifier, device, model_classifier_name, chip_number=1, noise_factor=0.01):
+def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_classifier, device, model_classifier_name, chip_number=1):
     early_stopping_counter = 0
     model_classifier.to(device)
     best_val_loss = float('inf')
