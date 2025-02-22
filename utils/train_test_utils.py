@@ -97,7 +97,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
 
     return model_encoder_decoder, training_losses, validation_losses, noise_factor, X_denoised_train, X_denoised_val, X_denoised_test
 
-def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criterion, label_encoder, model_name, conv_layers, chip_number): # TODO: add noise factor
+def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criterion, label_encoder, model_name, conv_layers, chip_number):
     model_encoder_decoder.eval()
     model_encoder_decoder.to(device)
     total_test_loss = 0

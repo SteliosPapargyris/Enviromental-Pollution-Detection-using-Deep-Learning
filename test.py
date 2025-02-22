@@ -71,7 +71,6 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
 
     X = X + X * 0.02
 
-    # TODO: Do with 5% and then with 10%
 
     chip_column = "Chip"
     class_column = "Class"
@@ -88,8 +87,6 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     # Convert mean and std values to numpy arrays
     mean_values = mean_values.to_numpy().reshape(1, -1)  # Shape (1, num_features)
     std_values = std_values.to_numpy().reshape(1, -1)  # Shape (1, num_features)
-
-    # TODO --> noise to test set!
 
     # Identify rows where class is NOT 4
     exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
