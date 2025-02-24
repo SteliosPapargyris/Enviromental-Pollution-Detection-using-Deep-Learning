@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from utils.data_utils import load_and_preprocess_data, create_dataloaders
+from utils.data_utils import load_and_preprocess_data, create_dataloaders, load_and_preprocess_data_classifier
 from utils.train_test_utils import train_encoder_decoder, evaluate_encoder_decoder, train_classifier, \
     evaluate_classifier
 from utils.plot_utils import plot_conf_matrix, plot_macro_roc_curve, plot_train_and_val_losses
@@ -9,9 +9,11 @@ from utils.models import ConvDenoiser, Classifier
 import matplotlib
 import numpy as np
 import random
+import pandas as pd
 
 # Temp Combination: for training of the classifier: combine in one row 4 samples with the same class and same temperature (32x4 → 128 columns)
 # 4 encoder decoders (one for each chip) train as it is
+
 matplotlib.use('Agg')  # Use a non-interactive backend
 seed = 42
 torch.manual_seed(seed)
@@ -26,7 +28,16 @@ batch_size = 32
 learning_rate = 1e-3
 num_epochs = 200
 num_classes = 4
-base_path = "data/mean_and_std_of_class_4_of_every_chip"
+base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
+
+# Storage for all chips
+all_X_denoised_train = []
+all_y_train = []
+all_X_denoised_val = []
+all_y_val = []
+all_X_denoised_test = []
+all_y_test = []
+
 
 # Loop over chip numbers to train sequentially, loading the pretrained model from the previous chip
 for chip_number in range(1, 5):
@@ -36,9 +47,9 @@ for chip_number in range(1, 5):
     current_path = f'{base_path}/{chip_number}.csv'
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load and preprocess raw data
-    X_train, y_train, X_val, y_val, X_test, y_test, X_denoised_train, X_denoised_val, X_denoised_test, label_encoder = load_and_preprocess_data(
-        file_path=current_path)
+    X_train, y_train, X_val, y_val, X_test, y_test, X_denoised_train, X_denoised_val, X_denoised_test, temp_train, temp_val, temp_test, class_train, class_val, class_test, label_encoder = load_and_preprocess_data(
+        file_path=current_path
+    )
 
     # Create data loaders for raw data
     train_loader, val_loader, test_loader, _, _, _ = create_dataloaders(batch_size=batch_size, X_train=X_train,
@@ -77,6 +88,19 @@ for chip_number in range(1, 5):
         chip_number=chip_number
     )
 
+    # Reshape temperature arrays to match denoised data shape
+    temp_train = temp_train.reshape(-1, 1, 1)  # Match (batch_size, channels, 1)
+    class_train = class_train.reshape(-1, 1, 1)
+    temp_val = temp_val.reshape(-1, 1, 1)
+    class_val = class_val.reshape(-1, 1, 1)
+    temp_test = temp_test.reshape(-1, 1, 1)
+    class_test = class_test.reshape(-1, 1, 1)
+
+    X_denoised_train = np.concatenate((X_denoised_train, temp_train, class_train), axis=2)
+    X_denoised_val = np.concatenate((X_denoised_val, temp_val, class_val), axis=2)
+
+
+
     # Plot training and validation losses
     plot_train_and_val_losses(training_losses, validation_losses, 'encoder_decoder_model', chip_number=chip_number)
 
@@ -92,44 +116,73 @@ for chip_number in range(1, 5):
         chip_number=chip_number
     )
 
-    # Create data loaders for raw data
-    _, _, _, denoised_train_loader, denoised_val_loader, denoised_test_loader = create_dataloaders(
-        batch_size=batch_size, X_denoised_train=X_denoised_train,
-        y_train=y_train, X_denoised_val=X_denoised_val, y_val=y_val, X_denoised_test=X_denoised_test, y_test=y_test)
+    X_denoised_test = np.concatenate((X_denoised_test, temp_test, class_test), axis=2)
 
-    # Define loss function, optimizer, and scheduler
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model_classifier.parameters(), lr=learning_rate)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True)
+    # Append to storage lists
+    all_X_denoised_train.append(X_denoised_train)
+    all_y_train.append(y_train)
+    all_X_denoised_val.append(X_denoised_val)
+    all_y_val.append(y_val)
+    all_X_denoised_test.append(X_denoised_test)
+    all_y_test.append(y_test)
 
-    # Train the model on the current chip
-    model_classifier, training_losses, validation_losses = train_classifier(
-        epochs=num_epochs,
-        train_loader=denoised_train_loader,
-        val_loader=denoised_val_loader,
-        optimizer=optimizer,
-        criterion=criterion,
-        scheduler=scheduler,
-        model_classifier=model_classifier,
-        device=device,
-        model_classifier_name='classifier_model',
-        chip_number=chip_number,
-    )
+# Convert to NumPy arrays
+all_X_denoised_train = np.concatenate(all_X_denoised_train, axis=0)
+all_y_train = np.concatenate(all_y_train, axis=0)
+all_X_denoised_val = np.concatenate(all_X_denoised_val, axis=0)
+all_y_val = np.concatenate(all_y_val, axis=0)
+all_X_denoised_test = np.concatenate(all_X_denoised_test, axis=0)
+all_y_test = np.concatenate(all_y_test, axis=0)
 
-    # Plot training and validation losses
-    plot_train_and_val_losses(training_losses, validation_losses, 'classifier_model', chip_number=chip_number)
-
-    # Evaluate the model on the test set
-    acc, prec, rec, f1, conf_mat = evaluate_classifier(
-        model_denoiser=model_denoiser,
-        model_classifier=model_classifier,
-        data_loader=test_loader,
-        device=device,
-        label_encoder=label_encoder,
-        model_name='denoiser_and_classifier',
-        conv_layers=conv_layers,
-        chip_number=chip_number
-    )
-
-    # Plot confusion matrix
-    plot_conf_matrix(conf_mat, label_encoder, model_name='classifier_model', chip_number=chip_number)
+    # file_paths = [
+    # "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip/1.csv",
+    # "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip/2.csv",
+    # "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip/3.csv",
+    # "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip/4.csv"
+    # ]
+    #
+    # # Load and preprocess raw data
+    # X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_classifier(
+    #     file_paths=file_paths)
+    #
+    # # Create data loaders for raw data
+    # _, _, _, denoised_train_loader, denoised_val_loader, denoised_test_loader = create_dataloaders(
+    #     batch_size=batch_size, X_denoised_train=X_denoised_train,
+    #     y_train=y_train, X_denoised_val=X_denoised_val, y_val=y_val, X_denoised_test=X_denoised_test, y_test=y_test)
+    #
+    # # Define loss function, optimizer, and scheduler
+    # criterion = nn.CrossEntropyLoss()
+    # optimizer = optim.Adam(model_classifier.parameters(), lr=learning_rate)
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True)
+    #
+    # # Train the model on the current chip
+    # model_classifier, training_losses, validation_losses = train_classifier(
+    #     epochs=num_epochs,
+    #     train_loader=denoised_train_loader,
+    #     val_loader=denoised_val_loader,
+    #     optimizer=optimizer,
+    #     criterion=criterion,
+    #     scheduler=scheduler,
+    #     model_classifier=model_classifier,
+    #     device=device,
+    #     model_classifier_name='classifier_model',
+    #     chip_number=chip_number,
+    # )
+    #
+    # # Plot training and validation losses
+    # plot_train_and_val_losses(training_losses, validation_losses, 'classifier_model', chip_number=chip_number)
+    #
+    # # Evaluate the model on the test set
+    # acc, prec, rec, f1, conf_mat = evaluate_classifier(
+    #     model_denoiser=model_denoiser,
+    #     model_classifier=model_classifier,
+    #     data_loader=test_loader,
+    #     device=device,
+    #     label_encoder=label_encoder,
+    #     model_name='denoiser_and_classifier',
+    #     conv_layers=conv_layers,
+    #     chip_number=chip_number
+    # )
+    #
+    # # Plot confusion matrix
+    # plot_conf_matrix(conf_mat, label_encoder, model_name='classifier_model', chip_number=chip_number)

@@ -13,6 +13,9 @@ def load_and_preprocess_data(file_path='data/train.csv', test_size=0.1, random_s
     label_encoder = LabelEncoder()
     df['Class'] = label_encoder.fit_transform(df['Class'])
 
+    temperature_values = df['Temperature'].to_numpy()
+    class_values = df['Class'].to_numpy()
+
     # Prepare features and labels for train and test data
     X = df.drop(['Class', 'Temperature', 'Chip'], axis=1).to_numpy()
     y = df['Class'].to_numpy()
@@ -20,14 +23,53 @@ def load_and_preprocess_data(file_path='data/train.csv', test_size=0.1, random_s
     # Reshape data for model input: [batch_size, channels, sequence_length]
     X = X.reshape(-1, 1, 32)
 
-    # Split the training data into training and validation sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.222, random_state=random_state)
+    # Split the data while maintaining Temperature and Class tracking
+    X_train, X_test, y_train, y_test, temp_train, temp_test, class_train, class_test = train_test_split(
+        X, y, temperature_values, class_values, test_size=test_size, random_state=random_state
+    )
+    X_train, X_val, y_train, y_val, temp_train, temp_val, class_train, class_val = train_test_split(
+        X_train, y_train, temp_train, class_train, test_size=0.222, random_state=random_state
+    )
 
     # Initialize placeholders for denoised versions
     X_denoised_train, X_denoised_val, X_denoised_test = None, None, None
 
-    return X_train, y_train, X_val, y_val, X_test, y_test, X_denoised_train, X_denoised_val, X_denoised_test, label_encoder
+    return (X_train, y_train, X_val, y_val, X_test, y_test,
+            X_denoised_train, X_denoised_val, X_denoised_test,
+            temp_train, temp_val, temp_test, class_train, class_val, class_test,
+            label_encoder)
+
+def load_and_preprocess_data_classifier(file_paths: list, test_size=0.1, random_state=42):
+    # Load data
+
+    # Read CSV files into DataFrames
+    dfs = [pd.read_csv(file) for file in file_paths]
+
+    # Merge data based on Temperature and Class
+    merged_df = dfs[0]
+    for df in dfs[1:]:
+        merged_df = pd.merge(merged_df, df, on=["Temperature", "Class"], suffixes=(None, f"_{df['Chip'].iloc[0]}"))
+
+    # Drop unnecessary Chip columns (Chip_2, Chip_3, Chip_4)
+    chip_columns_to_drop = [col for col in merged_df.columns if col.startswith("Chip_")]
+    merged_df = merged_df.drop(columns=chip_columns_to_drop)
+
+    # Encode 'Class' labels
+    label_encoder = LabelEncoder()
+    merged_df['Class'] = label_encoder.fit_transform(merged_df['Class'])
+
+    # Prepare features and labels for train and test data
+    X = merged_df.drop(['Class', 'Temperature', 'Chip'], axis=1, errors='ignore').to_numpy()
+    y = merged_df['Class'].to_numpy()
+
+    # Reshape data for model input: [batch_size, channels, sequence_length]
+    X = X.reshape(-1, 1, 128)
+
+    # Split the training data into training and validation sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.222, random_state=random_state)
+
+    return X_train, y_train, X_val, y_val, X_test, y_test, label_encoder
 
 
 def create_dataloaders(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None,
