@@ -30,14 +30,11 @@ num_epochs = 200
 num_classes = 4
 base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
 
-# Storage for all chips
-all_X_denoised_train = []
-all_y_train = []
-all_X_denoised_val = []
-all_y_val = []
-all_X_denoised_test = []
-all_y_test = []
+# Dictionary to store denoised training data for each chip
+X_denoised_train_dict = {}
 
+# Variable to store the last chip's X_denoised_train (only for matching)
+prev_X_denoised_train = None
 
 # Loop over chip numbers to train sequentially, loading the pretrained model from the previous chip
 for chip_number in range(1, 5):
@@ -99,8 +96,6 @@ for chip_number in range(1, 5):
     X_denoised_train = np.concatenate((X_denoised_train, temp_train, class_train), axis=2)
     X_denoised_val = np.concatenate((X_denoised_val, temp_val, class_val), axis=2)
 
-
-
     # Plot training and validation losses
     plot_train_and_val_losses(training_losses, validation_losses, 'encoder_decoder_model', chip_number=chip_number)
 
@@ -118,21 +113,32 @@ for chip_number in range(1, 5):
 
     X_denoised_test = np.concatenate((X_denoised_test, temp_test, class_test), axis=2)
 
-    # Append to storage lists
-    all_X_denoised_train.append(X_denoised_train)
-    all_y_train.append(y_train)
-    all_X_denoised_val.append(X_denoised_val)
-    all_y_val.append(y_val)
-    all_X_denoised_test.append(X_denoised_test)
-    all_y_test.append(y_test)
+    # Store X_denoised_train in dictionary with chip_number as the key
+    X_denoised_train_dict[f"X_denoised_train_{chip_number}"] = X_denoised_train.copy()
 
-# Convert to NumPy arrays
-all_X_denoised_train = np.concatenate(all_X_denoised_train, axis=0)
-all_y_train = np.concatenate(all_y_train, axis=0)
-all_X_denoised_val = np.concatenate(all_X_denoised_val, axis=0)
-all_y_val = np.concatenate(all_y_val, axis=0)
-all_X_denoised_test = np.concatenate(all_X_denoised_test, axis=0)
-all_y_test = np.concatenate(all_y_test, axis=0)
+    # Only run matching logic if this is NOT the first chip
+    if chip_number > 1 and prev_X_denoised_train is not None:
+        # Extract the last two columns for matching
+        keys1 = X_denoised_train[:, :, -2:]  # Last two columns from current chip's data
+        keys2 = prev_X_denoised_train[:, :, -2:]  # Last two columns from previous chip
+
+        # Find matching row indices
+        matching_indices = np.nonzero(np.all(keys1[:, None] == keys2, axis=-1))[1]
+
+        # Ensure indices are valid
+        if len(matching_indices) > 0:
+            # Filter prev_X_denoised_train to only keep the matching rows (excluding last two columns)
+            filtered_prev_X_denoised_train = prev_X_denoised_train[matching_indices, :, :-2]  # Exclude last two columns
+
+            # Concatenate along axis 2 (column-wise) to merge the arrays
+            all_X_train_denoised = np.concatenate((X_denoised_train, filtered_prev_X_denoised_train), axis=2)
+
+            print(f"Chip {chip_number}: Shape of new merged array:", all_X_train_denoised.shape)
+        else:
+            print(f"Chip {chip_number}: No matching rows found. Check your matching logic.")
+
+    # Update prev_X_denoised_train with the current chip's data (for next iteration)
+    prev_X_denoised_train = X_denoised_train.copy()
 
     # file_paths = [
     # "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip/1.csv",
