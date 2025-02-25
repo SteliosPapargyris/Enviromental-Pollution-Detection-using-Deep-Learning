@@ -30,11 +30,10 @@ num_epochs = 200
 num_classes = 4
 base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
 
-# Dictionary to store denoised training data for each chip
+# Initialize dictionaries to store data for each chip
 X_denoised_train_dict = {}
-
-# Variable to store the last chip's X_denoised_train (only for matching)
-prev_X_denoised_train = None
+X_denoised_val_dict = {}
+X_denoised_test_dict = {}
 
 # Loop over chip numbers to train sequentially, loading the pretrained model from the previous chip
 for chip_number in range(1, 5):
@@ -61,10 +60,8 @@ for chip_number in range(1, 5):
     # Load pretrained model from previous chip if it's not the first chip
     if chip_number > 1:
         denoiser_path = f'pths/denoiser_model_{chip_number - 1}.pth'
-        classifier_path = f'pths/classifier_model_{chip_number - 1}.pth'
         print(f"Loading pretrained models from Chip {chip_number - 1}...")
         model_denoiser.load_state_dict(torch.load(denoiser_path))
-        model_classifier.load_state_dict(torch.load(classifier_path))
 
     # Define loss function, optimizer, and scheduler
     criterion = nn.MSELoss()
@@ -93,9 +90,6 @@ for chip_number in range(1, 5):
     temp_test = temp_test.reshape(-1, 1, 1)
     class_test = class_test.reshape(-1, 1, 1)
 
-    X_denoised_train = np.concatenate((X_denoised_train, temp_train, class_train), axis=2)
-    X_denoised_val = np.concatenate((X_denoised_val, temp_val, class_val), axis=2)
-
     # Plot training and validation losses
     plot_train_and_val_losses(training_losses, validation_losses, 'encoder_decoder_model', chip_number=chip_number)
 
@@ -111,84 +105,124 @@ for chip_number in range(1, 5):
         chip_number=chip_number
     )
 
-    X_denoised_test = np.concatenate((X_denoised_test, temp_test, class_test), axis=2)
+    # Concatenate along the last axis
+    X_denoised_train_dict[f"X_denoised_train_{chip_number}"] = np.concatenate(
+        (X_denoised_train, temp_train, class_train), axis=2)
+    X_denoised_val_dict[f"X_denoised_val_{chip_number}"] = np.concatenate((X_denoised_val, temp_val, class_val), axis=2)
 
-    # Store X_denoised_train in dictionary with chip_number as the key
-    X_denoised_train_dict[f"X_denoised_train_{chip_number}"] = X_denoised_train.copy()
+    X_denoised_test_dict[f"X_denoised_test_{chip_number}"] = np.concatenate((X_denoised_test, temp_test, class_test), axis=2)
 
-    # Only run matching logic if this is NOT the first chip
-    if chip_number > 1 and prev_X_denoised_train is not None:
-        # Extract the last two columns for matching
-        keys1 = X_denoised_train[:, :, -2:]  # Last two columns from current chip's data
-        keys2 = prev_X_denoised_train[:, :, -2:]  # Last two columns from previous chip
+# Extract train arrays from dictionary
+X_denoised_train_1 = X_denoised_train_dict["X_denoised_train_1"]
+X_denoised_train_2 = X_denoised_train_dict["X_denoised_train_2"]
+X_denoised_train_3 = X_denoised_train_dict["X_denoised_train_3"]
+X_denoised_train_4 = X_denoised_train_dict["X_denoised_train_4"]
 
-        # Find matching row indices
-        matching_indices = np.nonzero(np.all(keys1[:, None] == keys2, axis=-1))[1]
+# Extract validation arrays from dictionary
+X_denoised_val_1 = X_denoised_val_dict["X_denoised_val_1"]
+X_denoised_val_2 = X_denoised_val_dict["X_denoised_val_2"]
+X_denoised_val_3 = X_denoised_val_dict["X_denoised_val_3"]
+X_denoised_val_4 = X_denoised_val_dict["X_denoised_val_4"]
 
-        # Ensure indices are valid
-        if len(matching_indices) > 0:
-            # Filter prev_X_denoised_train to only keep the matching rows (excluding last two columns)
-            filtered_prev_X_denoised_train = prev_X_denoised_train[matching_indices, :, :-2]  # Exclude last two columns
+# Extract test arrays from dictionary
+X_denoised_test_1 = X_denoised_test_dict["X_denoised_test_1"]
+X_denoised_test_2 = X_denoised_test_dict["X_denoised_test_2"]
+X_denoised_test_3 = X_denoised_test_dict["X_denoised_test_3"]
+X_denoised_test_4 = X_denoised_test_dict["X_denoised_test_4"]
 
-            # Concatenate along axis 2 (column-wise) to merge the arrays
-            all_X_train_denoised = np.concatenate((X_denoised_train, filtered_prev_X_denoised_train), axis=2)
+# Function to combine arrays while keeping temperature and class only once
+def combine_denoised_data(X1, X2, X3, X4):
+    # Stack the first 32 columns from all four arrays along axis=2
+    X_combined = np.concatenate((
+        X1[:, :, :-2],  # Take first 32 columns
+        X2[:, :, :-2],
+        X3[:, :, :-2],
+        X4[:, :, :-2]
+    ), axis=2)  # Stack along the last axis
 
-            print(f"Chip {chip_number}: Shape of new merged array:", all_X_train_denoised.shape)
-        else:
-            print(f"Chip {chip_number}: No matching rows found. Check your matching logic.")
+    # Extract the last 2 columns from one of the arrays (since they are identical)
+    temperature_class = X1[:, :, -2:]  # Take only once
 
-    # Update prev_X_denoised_train with the current chip's data (for next iteration)
-    prev_X_denoised_train = X_denoised_train.copy()
+    # Concatenate everything to form the final array
+    return np.concatenate((X_combined, temperature_class), axis=2)
 
-    # file_paths = [
-    # "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip/1.csv",
-    # "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip/2.csv",
-    # "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip/3.csv",
-    # "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip/4.csv"
-    # ]
-    #
-    # # Load and preprocess raw data
-    # X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_classifier(
-    #     file_paths=file_paths)
-    #
-    # # Create data loaders for raw data
-    # _, _, _, denoised_train_loader, denoised_val_loader, denoised_test_loader = create_dataloaders(
-    #     batch_size=batch_size, X_denoised_train=X_denoised_train,
-    #     y_train=y_train, X_denoised_val=X_denoised_val, y_val=y_val, X_denoised_test=X_denoised_test, y_test=y_test)
-    #
-    # # Define loss function, optimizer, and scheduler
-    # criterion = nn.CrossEntropyLoss()
-    # optimizer = optim.Adam(model_classifier.parameters(), lr=learning_rate)
-    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True)
-    #
-    # # Train the model on the current chip
-    # model_classifier, training_losses, validation_losses = train_classifier(
-    #     epochs=num_epochs,
-    #     train_loader=denoised_train_loader,
-    #     val_loader=denoised_val_loader,
-    #     optimizer=optimizer,
-    #     criterion=criterion,
-    #     scheduler=scheduler,
-    #     model_classifier=model_classifier,
-    #     device=device,
-    #     model_classifier_name='classifier_model',
-    #     chip_number=chip_number,
-    # )
-    #
-    # # Plot training and validation losses
-    # plot_train_and_val_losses(training_losses, validation_losses, 'classifier_model', chip_number=chip_number)
-    #
-    # # Evaluate the model on the test set
-    # acc, prec, rec, f1, conf_mat = evaluate_classifier(
-    #     model_denoiser=model_denoiser,
-    #     model_classifier=model_classifier,
-    #     data_loader=test_loader,
-    #     device=device,
-    #     label_encoder=label_encoder,
-    #     model_name='denoiser_and_classifier',
-    #     conv_layers=conv_layers,
-    #     chip_number=chip_number
-    # )
-    #
-    # # Plot confusion matrix
-    # plot_conf_matrix(conf_mat, label_encoder, model_name='classifier_model', chip_number=chip_number)
+# Combine all datasets
+X_denoised_train_all = combine_denoised_data(X_denoised_train_1, X_denoised_train_2, X_denoised_train_3, X_denoised_train_4)
+X_denoised_val_all = combine_denoised_data(X_denoised_val_1, X_denoised_val_2, X_denoised_val_3, X_denoised_val_4)
+X_denoised_test_all = combine_denoised_data(X_denoised_test_1, X_denoised_test_2, X_denoised_test_3, X_denoised_test_4)
+
+# Final shape checks
+print("Final Shapes:")
+print(f"Train: {X_denoised_train_all.shape}")  # Expected: (280, 1, 130)
+print(f"Validation: {X_denoised_val_all.shape}")  # Expected: (VAL_SIZE, 1, 130)
+print(f"Test: {X_denoised_test_all.shape}")  # Expected: (TEST_SIZE, 1, 130)
+
+y_train = X_denoised_train_all[:, :, -1].squeeze()
+y_val = X_denoised_val_all[:, :, -1].squeeze()
+y_test = X_denoised_test_all[:, :, -1].squeeze()
+
+from sklearn.preprocessing import LabelEncoder
+
+# Initialize LabelEncoder
+label_encoder = LabelEncoder()
+
+# Fit on training labels and transform all sets
+y_train_encoded = label_encoder.fit_transform(y_train)
+y_val_encoded = label_encoder.transform(y_val)  # Use transform only (no fit) for validation set
+y_test_encoded = label_encoder.transform(y_test)  # Use transform only (no fit) for test set
+
+# Final check
+print("Encoded Labels:")
+print(f"y_train_encoded: {y_train_encoded[:10]}")  # Print first 10 for verification
+print(f"y_val_encoded: {y_val_encoded[:10]}")
+print(f"y_test_encoded: {y_test_encoded[:10]}")
+
+
+X_denoised_train_all = X_denoised_train_all[:, :, :-2]
+X_denoised_val_all = X_denoised_val_all[:, :, :-2]
+X_denoised_test_all = X_denoised_test_all[:, :, :-2]
+
+# Create data loaders for raw data
+_, _, _, denoised_train_loader, denoised_val_loader, denoised_test_loader = create_dataloaders(
+    batch_size=batch_size, X_denoised_train=X_denoised_train_all,
+    y_train=y_train_encoded, X_denoised_val=X_denoised_val_all, y_val=y_val_encoded, X_denoised_test=X_denoised_test_all, y_test=y_test_encoded)
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model_classifier = Classifier().to(device)
+# Define loss function, optimizer, and scheduler
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model_classifier.parameters(), lr=learning_rate)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True)
+
+# Train the model on the current chip
+model_classifier, training_losses, validation_losses = train_classifier(
+    epochs=num_epochs,
+    train_loader=denoised_train_loader,
+    val_loader=denoised_val_loader,
+    optimizer=optimizer,
+    criterion=criterion,
+    scheduler=scheduler,
+    model_classifier=model_classifier,
+    device=device,
+    model_classifier_name='classifier_model',
+)
+
+# Plot training and validation losses
+plot_train_and_val_losses(training_losses, validation_losses, 'classifier_model', chip_number=5)
+
+model_denoiser = ConvDenoiser().to(device)
+denoiser_path = f'pths/denoiser_model_4.pth'
+model_denoiser.load_state_dict(torch.load(denoiser_path))
+
+# Evaluate the model on the test set
+acc, prec, rec, f1, conf_mat = evaluate_classifier(
+    model_denoiser=model_denoiser,
+    model_classifier=model_classifier,
+    data_loader=denoised_test_loader,
+    device=device,
+    label_encoder=label_encoder,
+    model_name='denoiser_and_classifier'
+)
+
+# Plot confusion matrix
+plot_conf_matrix(conf_mat, label_encoder, model_name='classifier_model')

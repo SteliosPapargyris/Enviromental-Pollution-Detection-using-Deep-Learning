@@ -3,7 +3,7 @@ import seaborn as sns
 from itertools import cycle
 
 
-def plot_conf_matrix(conf_matrix, label_encoder, model_name, chip_number):
+def plot_conf_matrix(conf_matrix, label_encoder, model_name):
     plt.figure()
     ax = sns.heatmap(
         conf_matrix,
@@ -17,7 +17,7 @@ def plot_conf_matrix(conf_matrix, label_encoder, model_name, chip_number):
     ax.set_yticklabels(label_encoder.classes_, rotation=0)
     plt.title(f'Confusion Matrix_{model_name}')
     plt.tight_layout()
-    plt.savefig(f"out/confusion_matrix_{model_name}_{chip_number}.jpg")
+    plt.savefig(f"out/confusion_matrix_{model_name}.jpg")
     plt.show()
 
 

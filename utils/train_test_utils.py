@@ -128,7 +128,7 @@ def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criteri
     return avg_test_loss, X_denoised_test
 
 
-def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_classifier, device, model_classifier_name, chip_number=1):
+def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_classifier, device, model_classifier_name):
     early_stopping_counter = 0
     model_classifier.to(device)
     best_val_loss = float('inf')
@@ -175,7 +175,7 @@ def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, sch
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             print('Validation loss decreased, saving model.')
-            torch.save(model_classifier.state_dict(), f'pths/{model_classifier_name}_{chip_number}.pth')
+            torch.save(model_classifier.state_dict(), f'pths/{model_classifier_name}.pth')
             early_stopping_counter = 0  # Reset the counter on improvement
         else:
             early_stopping_counter += 1  # Increment counter if no improvement
@@ -184,7 +184,7 @@ def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, sch
         # Early stopping condition
         if early_stopping_counter >= 6:
             print('Early stopping triggered after 6 epochs with no improvement in validation loss.')
-            model_classifier.load_state_dict(torch.load(f'pths/{model_classifier_name}_{chip_number}.pth'))
+            model_classifier.load_state_dict(torch.load(f'pths/{model_classifier_name}.pth'))
             print('Model restored to best state based on validation loss.')
             break
 
@@ -193,7 +193,7 @@ def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, sch
     return model_classifier, training_losses, validation_losses
 
 
-def evaluate_classifier(model_denoiser, model_classifier, data_loader, device, label_encoder, model_name, conv_layers, chip_number):
+def evaluate_classifier(model_denoiser, model_classifier, data_loader, device, label_encoder, model_name):
     model_classifier.eval()
     y_true = []
     y_pred = []
@@ -233,7 +233,7 @@ def evaluate_classifier(model_denoiser, model_classifier, data_loader, device, l
     report_df = pd.DataFrame(class_report).transpose()
 
     # Create a unique filename using the model name and number of convolutional layers
-    csv_filename = f"out\classification_reports/{model_name}_{conv_layers}_{chip_number}.csv"
+    csv_filename = f"out\classification_reports/{model_name}.csv"
 
     # Save the classification report to a CSV file
     report_df.to_csv(csv_filename, index=True)
