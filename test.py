@@ -134,14 +134,11 @@ avg_test_loss = evaluate_encoder_decoder(
 
 # Evaluate the model on the test set
 acc, prec, rec, f1, conf_mat = evaluate_classifier(
-    model_denoiser=model_denoiser,
     model_classifier=model_classifier,
     data_loader=test_loader,
     device=device,
     label_encoder=label_encoder,
     model_name='denoiser_and_classifier',
-    conv_layers=conv_layers,
-    chip_number=chip_number
 )
 
 # Plot confusion matrix

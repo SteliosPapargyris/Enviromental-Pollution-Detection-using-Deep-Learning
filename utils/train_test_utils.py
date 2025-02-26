@@ -193,7 +193,7 @@ def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, sch
     return model_classifier, training_losses, validation_losses
 
 
-def evaluate_classifier(model_denoiser, model_classifier, data_loader, device, label_encoder, model_name):
+def evaluate_classifier(model_classifier, data_loader, device, label_encoder, model_name):
     model_classifier.eval()
     y_true = []
     y_pred = []

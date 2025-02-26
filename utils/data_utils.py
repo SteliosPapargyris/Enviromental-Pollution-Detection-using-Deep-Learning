@@ -3,6 +3,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 import torch
+import numpy as np
 
 
 def load_and_preprocess_data(file_path='data/train.csv', test_size=0.1, random_state=42):
@@ -38,38 +39,6 @@ def load_and_preprocess_data(file_path='data/train.csv', test_size=0.1, random_s
             X_denoised_train, X_denoised_val, X_denoised_test,
             temp_train, temp_val, temp_test, class_train, class_val, class_test,
             label_encoder)
-
-def load_and_preprocess_data_classifier(file_paths: list, test_size=0.1, random_state=42):
-    # Load data
-
-    # Read CSV files into DataFrames
-    dfs = [pd.read_csv(file) for file in file_paths]
-
-    # Merge data based on Temperature and Class
-    merged_df = dfs[0]
-    for df in dfs[1:]:
-        merged_df = pd.merge(merged_df, df, on=["Temperature", "Class"], suffixes=(None, f"_{df['Chip'].iloc[0]}"))
-
-    # Drop unnecessary Chip columns (Chip_2, Chip_3, Chip_4)
-    chip_columns_to_drop = [col for col in merged_df.columns if col.startswith("Chip_")]
-    merged_df = merged_df.drop(columns=chip_columns_to_drop)
-
-    # Encode 'Class' labels
-    label_encoder = LabelEncoder()
-    merged_df['Class'] = label_encoder.fit_transform(merged_df['Class'])
-
-    # Prepare features and labels for train and test data
-    X = merged_df.drop(['Class', 'Temperature', 'Chip'], axis=1, errors='ignore').to_numpy()
-    y = merged_df['Class'].to_numpy()
-
-    # Reshape data for model input: [batch_size, channels, sequence_length]
-    X = X.reshape(-1, 1, 128)
-
-    # Split the training data into training and validation sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.222, random_state=random_state)
-
-    return X_train, y_train, X_val, y_val, X_test, y_test, label_encoder
 
 
 def create_dataloaders(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None,
@@ -114,3 +83,20 @@ def create_dataloaders(batch_size: int, X_train=None, y_train=None, X_val=None, 
                                           shuffle=False, drop_last=True)
 
     return train_loader, val_loader, test_loader, denoised_train_loader, denoised_val_loader, denoised_test_loader
+
+
+# Function to combine arrays while keeping temperature and class only once
+def combine_denoised_data(X1, X2, X3, X4):
+    # Stack the first 32 columns from all four arrays along axis=2
+    X_combined = np.concatenate((
+        X1[:, :, :-2],  # Take first 32 columns
+        X2[:, :, :-2],
+        X3[:, :, :-2],
+        X4[:, :, :-2]
+    ), axis=2)  # Stack along the last axis
+
+    # Extract the last 2 columns from one of the arrays (since they are identical)
+    temperature_class = X1[:, :, -2:]  # Take only once
+
+    # Concatenate everything to form the final array
+    return np.concatenate((X_combined, temperature_class), axis=2)
