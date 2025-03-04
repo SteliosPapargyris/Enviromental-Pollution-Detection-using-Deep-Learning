@@ -184,36 +184,36 @@ class Classifier(nn.Module):
         self.conv1 = nn.Conv1d(1, 32, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm1d(32)
         self.pool1 = nn.MaxPool1d(2)
-         # Lout = [(Lin + 2 * padding - kernel_size)/stride + 1]  --> Lout = [(128 + 2*1 - 3)/1 + 1 --> 128
-         # pooling -> 64
+         # Lout = [(Lin + 2 * padding - kernel_size)/stride + 1]  --> Lout = [(96 + 2*1 - 3)/1 + 1 --> 96
+         # pooling -> 48
 
         self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm1d(64)
         self.pool2 = nn.MaxPool1d(2)
-        # Lout = 64
-        # pooling --> 32
+        # Lout = 48
+        # pooling --> 24
 
         self.conv3 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
         self.bn3 = nn.BatchNorm1d(128)
         self.pool3 = nn.MaxPool1d(2)
-        # Lout = 32
-        # pooling --> 16
+        # Lout = 24
+        # pooling --> 12
 
         self.conv4 = nn.Conv1d(128,64, kernel_size=3, padding=1)
         self.bn4 = nn.BatchNorm1d(64)
         self.pool4 = nn.MaxPool1d(2)
-        # Lout = 16
-        # pooling = 8
+        # Lout = 12
+        # pooling = 6
 
         self.conv5 = nn.Conv1d(64,32, kernel_size=3, padding=1)
         self.bn5 = nn.BatchNorm1d(32)
         self.pool5 = nn.MaxPool1d(2)
 
-        # Lout = 8
-        # pooling = 4
+        # Lout = 6
+        # pooling = 3
 
         # Fully connected layer for classification
-        self.fc1 = nn.Linear(8*16, num_classes) # input size --> 32
+        self.fc1 = nn.Linear(3*32, num_classes) # input size --> 32
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, z):

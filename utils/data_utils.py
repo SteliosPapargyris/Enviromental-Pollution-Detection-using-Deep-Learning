@@ -86,12 +86,12 @@ def create_dataloaders(batch_size: int, X_train=None, y_train=None, X_val=None, 
 
 
 # Function to combine arrays while keeping temperature and class only once
-def combine_denoised_data(X1, X2, X3, X4):
+def combine_denoised_data(X1, X2, X4):
     # Stack the first 32 columns from all four arrays along axis=2
     X_combined = np.concatenate((
         X1[:, :, :-2],  # Take first 32 columns
         X2[:, :, :-2],
-        X3[:, :, :-2],
+        #X3[:, :, :-2],
         X4[:, :, :-2]
     ), axis=2)  # Stack along the last axis
 

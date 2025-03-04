@@ -30,6 +30,10 @@ X_denoised_train_dict, X_denoised_val_dict, X_denoised_test_dict = {}, {}, {}
 
 # Loop over chip numbers to train sequentially, loading the pretrained model from the previous chip
 for chip_number in range(1, 5):
+
+    if chip_number == 3:
+        continue
+
     print(f"Training on Chip {chip_number}...")
 
     # Load the shuffled dataset for the current chip
@@ -95,10 +99,17 @@ for chip_number in range(1, 5):
                                                                             axis=2)
 
 # Extract train, validation, and test arrays from dictionaries
-X_denoised_train = [X_denoised_train_dict[f"X_denoised_train_{i}"] for i in range(1, 5)]
-X_denoised_val = [X_denoised_val_dict[f"X_denoised_val_{i}"] for i in range(1, 5)]
-X_denoised_test = [X_denoised_test_dict[f"X_denoised_test_{i}"] for i in range(1, 5)]
-
+X_denoised_train = [
+    X_denoised_train_dict[f"X_denoised_train_{i}"]
+    for i in range(1, 5) if f"X_denoised_train_{i}" in X_denoised_train_dict]
+X_denoised_val = [
+    X_denoised_val_dict[f"X_denoised_val_{i}"]
+    for i in range(1, 5) if f"X_denoised_val_{i}" in X_denoised_val_dict
+]
+X_denoised_test = [
+    X_denoised_test_dict[f"X_denoised_test_{i}"]
+    for i in range(1, 5) if f"X_denoised_test_{i}" in X_denoised_test_dict
+]
 # Combine all datasets
 X_denoised_train_all = combine_denoised_data(*X_denoised_train)
 X_denoised_val_all = combine_denoised_data(*X_denoised_val)
