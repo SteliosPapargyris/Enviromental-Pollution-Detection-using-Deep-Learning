@@ -193,20 +193,35 @@ class Classifier(nn.Module):
         # Lout = 64
         # pooling --> 32
 
-        self.conv3 = nn.Conv1d(64, 32, kernel_size=3, padding=1)
-        self.bn3 = nn.BatchNorm1d(32)
+        self.conv3 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm1d(128)
         self.pool3 = nn.MaxPool1d(2)
         # Lout = 32
         # pooling --> 16
 
+        self.conv4 = nn.Conv1d(128,64, kernel_size=3, padding=1)
+        self.bn4 = nn.BatchNorm1d(64)
+        self.pool4 = nn.MaxPool1d(2)
+        # Lout = 16
+        # pooling = 8
+
+        self.conv5 = nn.Conv1d(64,32, kernel_size=3, padding=1)
+        self.bn5 = nn.BatchNorm1d(32)
+        self.pool5 = nn.MaxPool1d(2)
+
+        # Lout = 8
+        # pooling = 4
+
         # Fully connected layer for classification
-        self.fc1 = nn.Linear(32*16, num_classes) # input size --> 32
+        self.fc1 = nn.Linear(8*16, num_classes) # input size --> 32
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, z):
         z = self.pool1(F.relu(self.bn1(self.conv1(z))))
         z = self.pool2(F.relu(self.bn2(self.conv2(z))))
         z = self.pool3(F.relu(self.bn3(self.conv3(z))))
+        z = self.pool4(F.relu(self.bn4(self.conv4(z))))
+        z = self.pool5(F.relu(self.bn5(self.conv5(z))))
 
         z = z.view(z.size(0), -1)  # Flatten for fully connected layer
         z = self.fc1(z)
