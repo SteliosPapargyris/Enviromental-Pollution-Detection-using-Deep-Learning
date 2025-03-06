@@ -114,7 +114,7 @@ with torch.no_grad():
 X_denoised_test_final = torch.cat(all_denoised_features, dim=0)  # Shape: (total_samples, 128)
 
 model_classifier = Classifier().to(device)
-model_classifier.load_state_dict(torch.load('pths/classifier_model.pth'))
+model_classifier.load_state_dict(torch.load('pths/classifier_train.pth'))
 model_classifier.eval()
 
 # Create DataLoader for transformed test dataset
@@ -130,5 +130,5 @@ acc, prec, rec, f1, conf_mat = evaluate_classifier(
     model_name='denoiser_and_classifier_test'
 )
 
-plot_conf_matrix(conf_mat, label_encoder, model_name='classifier_model')
+plot_conf_matrix(conf_mat, label_encoder, model_name='classifier_test')
 

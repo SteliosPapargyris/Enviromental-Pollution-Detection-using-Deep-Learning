@@ -15,7 +15,7 @@ from sklearn.preprocessing import LabelEncoder
 seed = 42
 batch_size = 32
 learning_rate = 1e-3
-num_epochs = 200
+num_epochs = 20
 num_classes = 4
 
 base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
@@ -146,11 +146,11 @@ model_classifier, training_losses, validation_losses = train_classifier(
     scheduler=scheduler,
     model_classifier=model_classifier,
     device=device,
-    model_classifier_name='classifier_model',
+    model_classifier_name='classifier_train',
 )
 
 # Plot training and validation losses
-plot_train_and_val_losses(training_losses, validation_losses, 'classifier_model', chip_number=5)
+plot_train_and_val_losses(training_losses, validation_losses, 'classifier_train', chip_number=5)
 
 # Evaluate the model on the test set
 acc, prec, rec, f1, conf_mat = evaluate_classifier(
@@ -158,8 +158,8 @@ acc, prec, rec, f1, conf_mat = evaluate_classifier(
     data_loader=denoised_test_loader,
     device=device,
     label_encoder=label_encoder,
-    model_name='denoiser_and_classifier'
+    model_name='denoiser_and_classifier_train'
 )
 
 # Plot confusion matrix
-plot_conf_matrix(conf_mat, label_encoder, model_name='classifier_model')
+plot_conf_matrix(conf_mat, label_encoder, model_name='classifier_train')
