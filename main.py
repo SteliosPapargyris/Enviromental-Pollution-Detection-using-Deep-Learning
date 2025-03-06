@@ -91,6 +91,7 @@ for chip_number in range(1, 5):
         chip_number=chip_number
     )
 
+    # TODO
     # Concatenate along the last axis
     X_denoised_train_dict[f"X_denoised_train_{chip_number}"] = np.concatenate(
         (X_denoised_train, temp_train, class_train), axis=2)
