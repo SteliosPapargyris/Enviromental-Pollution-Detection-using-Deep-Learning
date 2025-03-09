@@ -16,8 +16,8 @@ torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # File paths and settings
-chip_number = 2  # Chip number for testing
-base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
+chip_number = 4  # Chip number for testing
+base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\December/fts_mzi_project/types_of_normalization\class4_of_every_chip_mean_and_std/test_4"
 test_file_path = f'{base_path}/{chip_number}.csv'
 batch_size = 32  # Adjust batch size if needed
 
@@ -50,7 +50,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     X = np.where(X == -np.inf, finite_min, X)
     X = np.where(X == np.inf, finite_max, X)
 
-    # X = X + X * 0.02  # Data perturbation (same as in training)
+    X = X + X * 0.02  # Data perturbation (same as in training)
 
     # Get mean and std for class 4 normalization
     chip_column = "Chip"
@@ -62,7 +62,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
 
     # Normalize for non-class-4 samples
     exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
-    # X[exclude_class_4] = (X[exclude_class_4] - mean_values) / std_values
+    X[exclude_class_4] = (X[exclude_class_4] - mean_values) / std_values
 
     # Reshape input for models (batch_size, channels, features)
     X = X.reshape(-1, 1, 32)
