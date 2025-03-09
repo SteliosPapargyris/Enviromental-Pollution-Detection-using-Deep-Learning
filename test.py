@@ -16,8 +16,8 @@ torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # File paths and settings
-chip_number = 4  # Chip number for testing
-base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\December/fts_mzi_project/types_of_normalization\class4_of_every_chip_mean_and_std/test_4"
+chip_number = 3  # Chip number for testing
+base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\December/fts_mzi_project/types_of_normalization\class4_of_every_chip_mean_and_std/test_3"
 test_file_path = f'{base_path}/{chip_number}.csv'
 batch_size = 32  # Adjust batch size if needed
 
@@ -77,19 +77,19 @@ _, _, test_loader, *_ = create_dataloaders(X_test=X_test, y_test=y_test, batch_s
 
 # model_denoiser_1 = ConvDenoiser1().to(device)
 model_denoiser_2 = ConvDenoiser2().to(device)
-model_denoiser_3 = ConvDenoiser3().to(device)
+# model_denoiser_3 = ConvDenoiser3().to(device)
 # model_denoiser_4 = ConvDenoiser4().to(device)
 
 # Load trained weights
 # model_denoiser_1.load_state_dict(torch.load(f'pths/denoiser_model_1.pth'))
 model_denoiser_2.load_state_dict(torch.load(f'pths/denoiser_model_2.pth'))
-model_denoiser_3.load_state_dict(torch.load(f'pths/denoiser_model_3.pth'))
+# model_denoiser_3.load_state_dict(torch.load(f'pths/denoiser_model_3.pth'))
 # model_denoiser_4.load_state_dict(torch.load(f'pths/denoiser_model_4.pth'))
 
 # # Set models to evaluation mode
 # model_denoiser_1.eval()
 model_denoiser_2.eval()
-model_denoiser_3.eval()
+# model_denoiser_3.eval()
 # model_denoiser_4.eval()
 
 all_denoised_features = []
@@ -102,10 +102,10 @@ with torch.no_grad():
         # Pass sequentially through each denoiser
         # denoised_1 = model_denoiser_1(X_test_batch)[0]
         denoised_2 = model_denoiser_2(X_test_batch)[0]
-        denoised_3 = model_denoiser_3(X_test_batch)[0]
+        # denoised_3 = model_denoiser_3(X_test_batch)[0]
         # denoised_4 = model_denoiser_4(X_test_batch)[0]
 
-        combined_features = torch.cat([denoised_2, denoised_3], dim=2)
+        combined_features = torch.cat([denoised_2], dim=2)
 
         # combined_features = torch.cat([denoised_1, denoised_2, denoised_3, denoised_4], dim=2)
 
