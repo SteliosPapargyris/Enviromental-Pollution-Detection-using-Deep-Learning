@@ -28,7 +28,7 @@ base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\c
 X_denoised_train_dict, X_denoised_val_dict, X_denoised_test_dict = {}, {}, {}
 
 # Loop over chip numbers to train sequentially, loading the pretrained model from the previous chip
-for chip_number in range(2, 3):
+for chip_number in range(2, 4):
     print(f"Training on Chip {chip_number}...")
 
     # Load the shuffled dataset for the current chip
@@ -92,9 +92,9 @@ for chip_number in range(2, 3):
                                                                             axis=2)
 
 # Extract train, validation, and test arrays from dictionaries
-X_denoised_train = [X_denoised_train_dict[f"X_denoised_train_{i}"] for i in range(2, 3)]
-X_denoised_val = [X_denoised_val_dict[f"X_denoised_val_{i}"] for i in range(2, 3)]
-X_denoised_test = [X_denoised_test_dict[f"X_denoised_test_{i}"] for i in range(2, 3)]
+X_denoised_train = [X_denoised_train_dict[f"X_denoised_train_{i}"] for i in range(2, 4)]
+X_denoised_val = [X_denoised_val_dict[f"X_denoised_val_{i}"] for i in range(2, 4)]
+X_denoised_test = [X_denoised_test_dict[f"X_denoised_test_{i}"] for i in range(2, 4)]
 
 # Combine all datasets
 X_denoised_train_all = combine_denoised_data(*X_denoised_train)
