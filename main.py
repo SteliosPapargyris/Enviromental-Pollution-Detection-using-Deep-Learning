@@ -51,7 +51,7 @@ for chip_number in range(1, 5):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=3, verbose=True)
 
     # Train the model on the current chip
-    model_denoiser, training_losses, validation_losses, noise_factor, X_denoised_train, X_denoised_val, X_denoised_test = train_encoder_decoder(
+    model_denoiser, training_losses, validation_losses, noise_factor, X_denoised_train, X_denoised_val, _ = train_encoder_decoder(
         epochs=num_epochs,
         train_loader=train_loader,
         val_loader=val_loader,
