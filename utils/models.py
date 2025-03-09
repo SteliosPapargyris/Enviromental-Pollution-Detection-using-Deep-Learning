@@ -200,7 +200,7 @@ class Classifier(nn.Module):
         # pooling --> 16
 
         # Fully connected layer for classification
-        self.fc1 = nn.Linear(32*4, num_classes) # input size --> 32
+        self.fc1 = nn.Linear(32*12, num_classes) # input size --> 32
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, z):
