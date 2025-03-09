@@ -15,7 +15,7 @@ from sklearn.preprocessing import LabelEncoder
 seed = 42
 batch_size = 32
 learning_rate = 1e-3
-num_epochs = 20
+num_epochs = 200
 num_classes = 4
 
 base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
