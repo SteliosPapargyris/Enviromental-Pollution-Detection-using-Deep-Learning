@@ -16,9 +16,9 @@ torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # File paths and settings
-chip_number = 2  # Chip number for testing
-base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
-test_file_path = f'{base_path}/{chip_number}.csv'
+chip_number = 5  # Chip number for testing
+base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data"
+test_file_path = f'{base_path}/5.csv'
 batch_size = 32  # Adjust batch size if needed
 
 # Columns to normalize
@@ -50,19 +50,19 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     X = np.where(X == -np.inf, finite_min, X)
     X = np.where(X == np.inf, finite_max, X)
 
-    # X = X + X * 0.02  # Data perturbation (same as in training)
+    X = X + X * 0.02  # Data perturbation (same as in training)
 
     # Get mean and std for class 4 normalization
     chip_column = "Chip"
     class_column = "Class"
     target_class = 4
-    chip_target_rows = df_copy[(df_copy[chip_column] == 5) & (df_copy[class_column] == target_class)]
-    mean_values = chip_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
-    std_values = chip_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
+    chip_5_target_rows = df_copy[(df_copy[chip_column] == 5) & (df_copy[class_column] == target_class)]
+    mean_values = chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
+    std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
 
     # Normalize for non-class-4 samples
     exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
-    # X[exclude_class_4] = (X[exclude_class_4] - mean_values) / std_values
+    X[exclude_class_4] = (X[exclude_class_4] - mean_values) / std_values
 
     # Reshape input for models (batch_size, channels, features)
     X = X.reshape(-1, 1, 32)
@@ -75,22 +75,22 @@ X_test, y_test, label_encoder = load_and_preprocess_test_data(file_path=test_fil
 # Create test DataLoader
 _, _, test_loader, *_ = create_dataloaders(X_test=X_test, y_test=y_test, batch_size=batch_size)
 
-# model_denoiser_1 = ConvDenoiser1().to(device)
+model_denoiser_1 = ConvDenoiser1().to(device)
 model_denoiser_2 = ConvDenoiser2().to(device)
-# model_denoiser_3 = ConvDenoiser3().to(device)
-# model_denoiser_4 = ConvDenoiser4().to(device)
+model_denoiser_3 = ConvDenoiser3().to(device)
+model_denoiser_4 = ConvDenoiser4().to(device)
 
 # Load trained weights
-# model_denoiser_1.load_state_dict(torch.load(f'pths/denoiser_model_1.pth'))
+model_denoiser_1.load_state_dict(torch.load(f'pths/denoiser_model_1.pth'))
 model_denoiser_2.load_state_dict(torch.load(f'pths/denoiser_model_2.pth'))
-# model_denoiser_3.load_state_dict(torch.load(f'pths/denoiser_model_3.pth'))
-# model_denoiser_4.load_state_dict(torch.load(f'pths/denoiser_model_4.pth'))
+model_denoiser_3.load_state_dict(torch.load(f'pths/denoiser_model_3.pth'))
+model_denoiser_4.load_state_dict(torch.load(f'pths/denoiser_model_4.pth'))
 
-# # Set models to evaluation mode
-# model_denoiser_1.eval()
+# Set models to evaluation mode
+model_denoiser_1.eval()
 model_denoiser_2.eval()
-# model_denoiser_3.eval()
-# model_denoiser_4.eval()
+model_denoiser_3.eval()
+model_denoiser_4.eval()
 
 all_denoised_features = []
 
@@ -100,14 +100,13 @@ with torch.no_grad():
         X_test_batch = X_test_batch.to(device)
 
         # Pass sequentially through each denoiser
-        # denoised_1 = model_denoiser_1(X_test_batch)[0]
+        denoised_1 = model_denoiser_1(X_test_batch)[0]
         denoised_2 = model_denoiser_2(X_test_batch)[0]
-        # denoised_3 = model_denoiser_3(X_test_batch)[0]
-        # denoised_4 = model_denoiser_4(X_test_batch)[0]
+        denoised_3 = model_denoiser_3(X_test_batch)[0]
+        denoised_4 = model_denoiser_4(X_test_batch)[0]
 
-        combined_features = torch.cat([denoised_2], dim=2)
 
-        # combined_features = torch.cat([denoised_1, denoised_2, denoised_3, denoised_4], dim=2)
+        combined_features = torch.cat([denoised_1, denoised_2, denoised_3, denoised_4], dim=2)
 
         all_denoised_features.append(combined_features)
 

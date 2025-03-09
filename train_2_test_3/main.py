@@ -10,6 +10,7 @@ import matplotlib
 import numpy as np
 import random
 from sklearn.preprocessing import LabelEncoder
+import os
 
 # Hyperparameters
 seed = 42
@@ -17,12 +18,13 @@ batch_size = 32
 learning_rate = 1e-3
 num_epochs = 200
 num_classes = 4
+
+base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
+
 matplotlib.use('Agg')  # Use a non-interactive backend
 torch.manual_seed(seed), torch.cuda.manual_seed_all(seed), np.random.seed(seed), random.seed(seed)
 torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
 
 # Initialize dictionaries to store data for each chip
 X_denoised_train_dict, X_denoised_val_dict, X_denoised_test_dict = {}, {}, {}

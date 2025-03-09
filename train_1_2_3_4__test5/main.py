@@ -10,6 +10,7 @@ import matplotlib
 import numpy as np
 import random
 from sklearn.preprocessing import LabelEncoder
+import os
 
 # Hyperparameters
 seed = 42
@@ -17,19 +18,24 @@ batch_size = 32
 learning_rate = 1e-3
 num_epochs = 200
 num_classes = 4
+
+base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
+
 matplotlib.use('Agg')  # Use a non-interactive backend
 torch.manual_seed(seed), torch.cuda.manual_seed_all(seed), np.random.seed(seed), random.seed(seed)
 torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
-
 # Initialize dictionaries to store data for each chip
 X_denoised_train_dict, X_denoised_val_dict, X_denoised_test_dict = {}, {}, {}
 
 # Loop over chip numbers to train sequentially, loading the pretrained model from the previous chip
-for chip_number in range(2, 3):
+for chip_number in range(1, 5):
     print(f"Training on Chip {chip_number}...")
+
+    # Create a folder named train_{chip_number}
+    folder_name = f"train_{chip_number}"
+    os.makedirs(folder_name, exist_ok=True)
 
     # Load the shuffled dataset for the current chip
     current_path = f'{base_path}/{chip_number}.csv'
@@ -92,9 +98,9 @@ for chip_number in range(2, 3):
                                                                             axis=2)
 
 # Extract train, validation, and test arrays from dictionaries
-X_denoised_train = [X_denoised_train_dict[f"X_denoised_train_{i}"] for i in range(2, 3)]
-X_denoised_val = [X_denoised_val_dict[f"X_denoised_val_{i}"] for i in range(2, 3)]
-X_denoised_test = [X_denoised_test_dict[f"X_denoised_test_{i}"] for i in range(2, 3)]
+X_denoised_train = [X_denoised_train_dict[f"X_denoised_train_{i}"] for i in range(1, 5)]
+X_denoised_val = [X_denoised_val_dict[f"X_denoised_val_{i}"] for i in range(1, 5)]
+X_denoised_test = [X_denoised_test_dict[f"X_denoised_test_{i}"] for i in range(1, 5)]
 
 # Combine all datasets
 X_denoised_train_all = combine_denoised_data(*X_denoised_train)
