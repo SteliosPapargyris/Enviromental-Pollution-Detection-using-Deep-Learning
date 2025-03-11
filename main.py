@@ -22,13 +22,13 @@ torch.manual_seed(seed), torch.cuda.manual_seed_all(seed), np.random.seed(seed),
 torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
+base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\shuffled_dataset"
 
 # Initialize dictionaries to store data for each chip
 X_denoised_train_dict, X_denoised_val_dict, X_denoised_test_dict = {}, {}, {}
 
 # Loop over chip numbers to train sequentially, loading the pretrained model from the previous chip
-for chip_number in range(2, 5):
+for chip_number in range(1, 5):
     print(f"Training on Chip {chip_number}...")
 
     # Load the shuffled dataset for the current chip
