@@ -2,7 +2,7 @@
 ## 📌 Project Description
 This project utilizes deep learning techniques to detect and classify environmental pollution. The model is designed to analyze gas pollution
 
-## 🔥 Key Features:
+## 🔥 Key Features
 
 
 ## ⚡ Installation
