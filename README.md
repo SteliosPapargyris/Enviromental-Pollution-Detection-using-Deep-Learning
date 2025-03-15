@@ -41,6 +41,14 @@ python test.py
 ```
 
 ## 📢 Release Notes
+
+### 🚀 Upcoming Changes
+🔹 v1.2.0 (March 2025)
+- 🌍 Enhancing dataset augmentation techniques  
+- 🏗️ Refactoring code structure for better modularity  
+- 🔧 Improving model accuracy with fine-tuned hyperparameters
+
+### ✅ Implemented
 🔹 v1.1.0 (March 2025)
 - ⚡ Optimized deep learning model for faster inference
 - 🛠 Improved dataset pre-processing pipeline
