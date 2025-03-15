@@ -44,9 +44,8 @@ python test.py
 
 ### 🚀 Upcoming Changes
 🔹 v1.2.0 (March 2025)
-- 🌍 Enhancing dataset augmentation techniques  
-- 🏗️ Refactoring code structure for better modularity  
-- 🔧 Improving model accuracy with fine-tuned hyperparameters
+- 🏷️ Standardizing all chips with autoencoders to follow the structure of **Chip 1** (chosen as the reference chip)
+- 🏗️ Adding a **dense layer after Conv2** in the convolutional denoiser for improved feature extraction
 
 ### ✅ Implemented
 🔹 v1.1.0 (March 2025)
