@@ -5,7 +5,7 @@ import pandas as pd
 from torch.utils.data import TensorDataset, DataLoader
 
 
-def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name, chip_number=1, noise_factor=0.02):
+def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name, train_loader_chip1, val_loader_chip1, test_loader_chip1, chip_number=1, noise_factor=0.02):
     early_stopping_counter = 0
     model_encoder_decoder.to(device)
     best_val_loss = float('inf')
@@ -21,8 +21,10 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
         # Training phase
         model_encoder_decoder.train()
         total_train_loss = 0
-        for inputs, labels in train_loader:
+        for (inputs, labels), (inputs_chip1, labels_chip1) in zip(train_loader, train_loader_chip1):
+
             inputs, labels = inputs.to(device), labels.to(device)
+            inputs_chip1, labels_chip1 = inputs_chip1.to(device), labels_chip1.to(device)
 
             noisy_inputs = inputs + noise_factor * torch.randn(*inputs.shape, device=device)
 
@@ -31,10 +33,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
             # Pass data through denoiser
             denoised_inputs = model_encoder_decoder(noisy_inputs)[0] # Extract only the denoised output not latent space (check the class ConvDenoiser architecture)
 
-            # # Ensure label and output shapes match
-            # assert outputs.shape == labels.shape, f"Mismatch: Outputs {outputs.shape}, Labels {labels.shape}"
-
-            loss = criterion(denoised_inputs, inputs)
+            loss = criterion(denoised_inputs, inputs_chip1)
             loss.backward()
             optimizer.step()
             total_train_loss += loss.item()
@@ -49,8 +48,9 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
         model_encoder_decoder.eval()
         total_val_loss = 0
         with torch.no_grad():
-            for inputs, labels in val_loader:
+            for (inputs, labels), (inputs_chip1, labels_chip1) in zip(val_loader, train_loader_chip1):
                 inputs, labels = inputs.to(device), labels.to(device)
+                inputs_chip1, labels_chip1 = inputs_chip1.to(device), labels_chip1.to(device)
 
                 # Add noise during validation as well (optional, for consistency)
                 noisy_inputs = inputs + noise_factor * torch.randn(*inputs.shape, device=device)
@@ -58,7 +58,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
                 # Pass through denoiser and classifier
                 denoised_inputs = model_encoder_decoder(noisy_inputs)[0]
 
-                loss = criterion(denoised_inputs, inputs)
+                loss = criterion(denoised_inputs, inputs_chip1)
                 total_val_loss += loss.item()
 
                 denoised_val_list.append(denoised_inputs.cpu())
@@ -96,6 +96,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
     X_denoised_test = None  # Test data will be denoised separately
 
     return model_encoder_decoder, training_losses, validation_losses, noise_factor, X_denoised_train, X_denoised_val, X_denoised_test
+
 
 def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criterion, label_encoder, model_name, conv_layers, chip_number):
     model_encoder_decoder.eval()

@@ -47,21 +47,20 @@ def create_dataloaders(batch_size: int, X_train=None, y_train=None, X_val=None, 
     train_loader, val_loader, test_loader = None, None, None
     denoised_train_loader, denoised_val_loader, denoised_test_loader = None, None, None
 
-
     if X_train is not None and len(X_train) > 0:
         X_train = torch.tensor(X_train, dtype=torch.float32)
         y_train = torch.tensor(y_train, dtype=torch.long)
-        train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=False, drop_last=False)
+        train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=False, drop_last=True)
 
     if X_val is not None and len(X_val) > 0:
         X_val = torch.tensor(X_val, dtype=torch.float32)
         y_val = torch.tensor(y_val, dtype=torch.long)
-        val_loader = DataLoader(TensorDataset(X_val, y_val), batch_size=batch_size, shuffle=False, drop_last=False)
+        val_loader = DataLoader(TensorDataset(X_val, y_val), batch_size=batch_size, shuffle=False, drop_last=True)
 
     if X_test is not None and len(X_test) > 0:
         X_test = torch.tensor(X_test, dtype=torch.float32)
         y_test = torch.tensor(y_test, dtype=torch.long)
-        test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=batch_size, shuffle=False, drop_last=False)
+        test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=batch_size, shuffle=False, drop_last=True)
 
     # Denoised data loaders
     if X_denoised_train is not None:

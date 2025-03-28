@@ -15,7 +15,7 @@ from sklearn.preprocessing import LabelEncoder
 seed = 42
 batch_size = 32
 learning_rate = 1e-3
-num_epochs = 200
+num_epochs = 500
 num_classes = 4
 
 base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\January\encoder_decoder\code\data\mean_and_std_of_class_4_of_every_chip"
@@ -42,6 +42,11 @@ for chip_number in range(1, 5):
                                                                    y_train=y_train, X_val=X_val, y_val=y_val,
                                                                    X_test=X_test, y_test=y_test)
 
+    if chip_number == 1:
+        train_loader_chip1 = train_loader
+        val_loader_chip1 = val_loader
+        test_loader_chip1 = test_loader
+
     conv_layers = 'enc_dec'
     model_denoiser = eval(f"ConvDenoiser{chip_number}()").to(device)
 
@@ -61,6 +66,9 @@ for chip_number in range(1, 5):
         model_encoder_decoder=model_denoiser,
         device=device,
         model_encoder_decoder_name='denoiser_model',
+        train_loader_chip1=train_loader_chip1,
+        val_loader_chip1=val_loader_chip1,
+        test_loader_chip1=test_loader_chip1,
         chip_number=chip_number
     )
 
@@ -86,6 +94,13 @@ for chip_number in range(1, 5):
         conv_layers=conv_layers,
         chip_number=chip_number
     )
+
+    temp_train = temp_train[:X_denoised_train.shape[0]]
+    class_train = class_train[:X_denoised_train.shape[0]]
+    temp_val = temp_val[:X_denoised_val.shape[0]]
+    class_val = class_val[:X_denoised_val.shape[0]]
+    temp_test = temp_test[:X_denoised_test.shape[0]]
+    class_test = class_test[:X_denoised_test.shape[0]]
 
     # Concatenate along the last axis
     X_denoised_train_dict[f"X_denoised_train_{chip_number}"] = np.concatenate(
