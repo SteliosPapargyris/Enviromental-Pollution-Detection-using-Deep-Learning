@@ -89,6 +89,7 @@ for chip_number in range(1, 5):
         data_loader=test_loader,
         criterion=criterion,
         device=device,
+        test_loader_chip1=test_loader_chip1,
         label_encoder=label_encoder,
         model_name='denoiser',
         conv_layers=conv_layers,
