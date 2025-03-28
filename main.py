@@ -29,7 +29,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 X_denoised_train_dict, X_denoised_val_dict, X_denoised_test_dict = {}, {}, {}
 
 # Loop over chip numbers to train sequentially, loading the pretrained model from the previous chip
-for chip_number in range(1, 5):
+for chip_number in [2, 1, 3, 4]:
     print(f"Training on Chip {chip_number}...")
 
     # Load the shuffled dataset for the current chip
@@ -42,10 +42,10 @@ for chip_number in range(1, 5):
                                                                    y_train=y_train, X_val=X_val, y_val=y_val,
                                                                    X_test=X_test, y_test=y_test)
 
-    if chip_number == 1:
-        train_loader_chip1 = train_loader
-        val_loader_chip1 = val_loader
-        test_loader_chip1 = test_loader
+    if chip_number == 2:
+        train_loader_chip2 = train_loader
+        val_loader_chip2 = val_loader
+        test_loader_chip2 = test_loader
 
     conv_layers = 'enc_dec'
     model_denoiser = eval(f"ConvDenoiser{chip_number}()").to(device)
@@ -66,9 +66,9 @@ for chip_number in range(1, 5):
         model_encoder_decoder=model_denoiser,
         device=device,
         model_encoder_decoder_name='denoiser_model',
-        train_loader_chip1=train_loader_chip1,
-        val_loader_chip1=val_loader_chip1,
-        test_loader_chip1=test_loader_chip1,
+        train_loader_chip2=train_loader_chip2,
+        val_loader_chip2=val_loader_chip2,
+        test_loader_chip2=test_loader_chip2,
         chip_number=chip_number
     )
 
@@ -89,7 +89,7 @@ for chip_number in range(1, 5):
         data_loader=test_loader,
         criterion=criterion,
         device=device,
-        test_loader_chip1=test_loader_chip1,
+        test_loader_chip2=test_loader_chip2,
         label_encoder=label_encoder,
         model_name='denoiser',
         conv_layers=conv_layers,
