@@ -48,7 +48,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
         model_encoder_decoder.eval()
         total_val_loss = 0
         with torch.no_grad():
-            for (inputs, labels), (inputs_chip1, labels_chip1) in zip(val_loader, train_loader_chip1):
+            for (inputs, labels), (inputs_chip1, labels_chip1) in zip(val_loader, val_loader_chip1):
                 inputs, labels = inputs.to(device), labels.to(device)
                 inputs_chip1, labels_chip1 = inputs_chip1.to(device), labels_chip1.to(device)
 

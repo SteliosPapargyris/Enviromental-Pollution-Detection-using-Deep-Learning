@@ -60,7 +60,7 @@ def create_dataloaders(batch_size: int, X_train=None, y_train=None, X_val=None, 
     if X_test is not None and len(X_test) > 0:
         X_test = torch.tensor(X_test, dtype=torch.float32)
         y_test = torch.tensor(y_test, dtype=torch.long)
-        test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=batch_size, shuffle=False, drop_last=True)
+        test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=batch_size, shuffle=False, drop_last=False)
 
     # Denoised data loaders
     if X_denoised_train is not None:
