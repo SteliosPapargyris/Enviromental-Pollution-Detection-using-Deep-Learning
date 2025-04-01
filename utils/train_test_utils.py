@@ -26,7 +26,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
             inputs, labels = inputs.to(device), labels.to(device)
             inputs_chip4, labels_chip4 = inputs_chip4.to(device), labels_chip4.to(device)
 
-            noisy_inputs = inputs + noise_factor * torch.randn(*inputs.shape, device=device)
+            noisy_inputs = inputs
 
             optimizer.zero_grad()
 
@@ -53,7 +53,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
                 inputs_chip4, labels_chip4 = inputs_chip4.to(device), labels_chip4.to(device)
 
                 # Add noise during validation as well (optional, for consistency)
-                noisy_inputs = inputs + noise_factor * torch.randn(*inputs.shape, device=device)
+                noisy_inputs = inputs
 
                 # Pass through denoiser and classifier
                 denoised_inputs = model_encoder_decoder(noisy_inputs)[0]
@@ -111,7 +111,7 @@ def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criteri
             inputs_chip4 = inputs_chip4.to(device)
 
             noise_factor = 0.02
-            noisy_inputs = inputs + noise_factor * torch.randn(*inputs.shape, device=device)
+            noisy_inputs = inputs
 
             denoised_inputs = model_encoder_decoder(noisy_inputs)[0]
 
