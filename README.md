@@ -43,12 +43,12 @@ python test.py
 ## 📢 Release Notes
 
 ### 🚀 Upcoming Changes
-
+- 🏗️ Adding a **dense layer after Conv2** in the convolutional denoiser for improved feature extraction
 
 ### ✅ Implemented
 🔹 v1.2.0 (March 2025)
 - 🏷️ Standardizing all chips with autoencoders to follow the structure of **Chip 1** (chosen as the reference chip)
-- 🏗️ Adding a **dense layer after Conv2** in the convolutional denoiser for improved feature extraction
+
 
 🔹 v1.1.0 (March 2025)
 - ⚡ Optimized deep learning model for faster inference
