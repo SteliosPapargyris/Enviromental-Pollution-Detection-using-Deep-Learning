@@ -43,6 +43,7 @@ python test.py
 ## 📢 Release Notes
 
 ### 🚀 Upcoming Changes
+- Shuffle dataset (e.g chip 1, 3, 4 shuffled) and the target chip will be chip 2. Not necessary to do continual learning.
 - 🏗️ Adding a **dense layer after Conv2** in the convolutional denoiser for improved feature extraction
 
 ### ✅ Implemented
