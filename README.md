@@ -44,19 +44,22 @@ python test.py
 
 ### 🚀 Upcoming Changes
 - Shuffle dataset (e.g chip 1, 3, 4 shuffled) and the target chip will be chip 2. Not necessary to do continual learning.
-- 🏗️ Adding a **dense layer after Conv2** in the convolutional denoiser for improved feature extraction
 
 ### ✅ Implemented
-🔹 v1.2.0 (March 2025)
+
+🔹 v1.3 (April 2025)
+- 🛠 Added a **dense layer after Conv2** in the convolutional denoiser for improved feature extraction
+
+🔹 v1.2 (March 2025)
 - 🏷️ Standardizing all chips with autoencoders to follow the structure of **Chip 1** (chosen as the reference chip)
 
 
-🔹 v1.1.0 (March 2025)
+🔹 v1.1 (March 2025)
 - ⚡ Optimized deep learning model for faster inference
 - 🛠 Improved dataset pre-processing pipeline
 - 🐞 Bug fixes in test cases
 
-🔹 v1.0.0 (February 2025)
+🔹 v1.0 (February 2025)
 - 🚀 Initial release with baseline deep learning model
 - 🏗️ Added dataset preprocessing and augmentation
 - 🧠 Implemented pollution classification with CNN
