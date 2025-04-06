@@ -19,6 +19,11 @@ class ConvDenoiser1(nn.Module):
         # Lout = (16 + 2 - 3)/1 + 1 --> Lout = 16
         # pooling --> 8
 
+        # input length --> 32
+        # After pool1: 16, After pool2: 8, 64 channels
+        self.flattened_size = 64 * 8  # update based on input size
+        self.fc = nn.Linear(self.flattened_size, self.flattened_size)  # you can change output size too
+
         ## decoder layers ##
         # Lout = (Lin - 1) * stride - 2 * padding + kernel_size + out_padding
         self.t_conv1 = nn.ConvTranspose1d(64, 128, kernel_size=2, stride=2)
@@ -36,9 +41,17 @@ class ConvDenoiser1(nn.Module):
         z = self.pool1(F.relu(self.bn1(self.conv1(x))))
         z = self.pool2(F.relu(self.bn2(self.conv2(z))))
 
+        # Flatten and pass through dense layer
+        batch_size = z.size(0)
+        z_flat = z.view(batch_size, -1)
+        z_dense = F.relu(self.fc(z_flat))
+
+        # Unflatten before decoding
+        z_unflat = z_dense.view(batch_size, 64, 8)
+
         ## decode ##
         # add transpose conv layers, with relu activation function
-        x = F.relu(self.t_conv1(z))
+        x = F.relu(self.t_conv1(z_unflat))
         x = F.relu(self.t_conv2(x))
         # transpose again, output should have a sigmoid applied
         x = F.sigmoid(self.conv_out(x))
@@ -63,6 +76,11 @@ class ConvDenoiser2(nn.Module):
         # Lout = (16 + 2 - 3)/1 + 1 --> Lout = 16
         # pooling --> 8
 
+        # input length --> 32
+        # After pool1: 16, After pool2: 8, 64 channels
+        self.flattened_size = 64 * 8  # update based on input size
+        self.fc = nn.Linear(self.flattened_size, self.flattened_size)  # you can change output size too
+
         ## decoder layers ##
         # Lout = (Lin - 1) * stride - 2 * padding + kernel_size + out_padding
         self.t_conv1 = nn.ConvTranspose1d(64, 128, kernel_size=2, stride=2)
@@ -80,9 +98,17 @@ class ConvDenoiser2(nn.Module):
         z = self.pool1(F.relu(self.bn1(self.conv1(x))))
         z = self.pool2(F.relu(self.bn2(self.conv2(z))))
 
+        # Flatten and pass through dense layer
+        batch_size = z.size(0)
+        z_flat = z.view(batch_size, -1)
+        z_dense = F.relu(self.fc(z_flat))
+
+        # Unflatten before decoding
+        z_unflat = z_dense.view(batch_size, 64, 8)
+
         ## decode ##
         # add transpose conv layers, with relu activation function
-        x = F.relu(self.t_conv1(z))
+        x = F.relu(self.t_conv1(z_unflat))
         x = F.relu(self.t_conv2(x))
         # transpose again, output should have a sigmoid applied
         x = F.sigmoid(self.conv_out(x))
@@ -107,6 +133,11 @@ class ConvDenoiser3(nn.Module):
         # Lout = (16 + 2 - 3)/1 + 1 --> Lout = 16
         # pooling --> 8
 
+        # input length --> 32
+        # After pool1: 16, After pool2: 8, 64 channels
+        self.flattened_size = 64 * 8  # update based on input size
+        self.fc = nn.Linear(self.flattened_size, self.flattened_size)  # you can change output size too
+
         ## decoder layers ##
         # Lout = (Lin - 1) * stride - 2 * padding + kernel_size + out_padding
         self.t_conv1 = nn.ConvTranspose1d(64, 128, kernel_size=2, stride=2)
@@ -124,9 +155,17 @@ class ConvDenoiser3(nn.Module):
         z = self.pool1(F.relu(self.bn1(self.conv1(x))))
         z = self.pool2(F.relu(self.bn2(self.conv2(z))))
 
+        # Flatten and pass through dense layer
+        batch_size = z.size(0)
+        z_flat = z.view(batch_size, -1)
+        z_dense = F.relu(self.fc(z_flat))
+
+        # Unflatten before decoding
+        z_unflat = z_dense.view(batch_size, 64, 8)
+
         ## decode ##
         # add transpose conv layers, with relu activation function
-        x = F.relu(self.t_conv1(z))
+        x = F.relu(self.t_conv1(z_unflat))
         x = F.relu(self.t_conv2(x))
         # transpose again, output should have a sigmoid applied
         x = F.sigmoid(self.conv_out(x))
@@ -151,6 +190,11 @@ class ConvDenoiser4(nn.Module):
         # Lout = (16 + 2 - 3)/1 + 1 --> Lout = 16
         # pooling --> 8
 
+        # input length --> 32
+        # After pool1: 16, After pool2: 8, 64 channels
+        self.flattened_size = 64 * 8  # update based on input size
+        self.fc = nn.Linear(self.flattened_size, self.flattened_size)  # you can change output size too
+
         ## decoder layers ##
         # Lout = (Lin - 1) * stride - 2 * padding + kernel_size + out_padding
         self.t_conv1 = nn.ConvTranspose1d(64, 128, kernel_size=2, stride=2)
@@ -168,9 +212,17 @@ class ConvDenoiser4(nn.Module):
         z = self.pool1(F.relu(self.bn1(self.conv1(x))))
         z = self.pool2(F.relu(self.bn2(self.conv2(z))))
 
+        # Flatten and pass through dense layer
+        batch_size = z.size(0)
+        z_flat = z.view(batch_size, -1)
+        z_dense = F.relu(self.fc(z_flat))
+
+        # Unflatten before decoding
+        z_unflat = z_dense.view(batch_size, 64, 8)
+
         ## decode ##
         # add transpose conv layers, with relu activation function
-        x = F.relu(self.t_conv1(z))
+        x = F.relu(self.t_conv1(z_unflat))
         x = F.relu(self.t_conv2(x))
         # transpose again, output should have a sigmoid applied
         x = F.sigmoid(self.conv_out(x))
