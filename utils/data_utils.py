@@ -42,8 +42,7 @@ def load_and_preprocess_data(file_path='data/train.csv', test_size=0.1, random_s
 
 
 def create_dataloaders(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None,
-                        X_denoised_train=None, X_denoised_val=None, X_denoised_test=None):
-
+                       X_denoised_train=None, X_denoised_val=None, X_denoised_test=None):
     train_loader, val_loader, test_loader = None, None, None
     denoised_train_loader, denoised_val_loader, denoised_test_loader = None, None, None
 

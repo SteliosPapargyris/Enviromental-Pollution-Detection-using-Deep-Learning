@@ -5,7 +5,7 @@ import pandas as pd
 from torch.utils.data import TensorDataset, DataLoader
 
 
-def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name, train_loader_chip2, val_loader_chip2, test_loader_chip2, chip_number=1, noise_factor=0.02):
+def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name, train_loader_chip2, val_loader_chip2, chip_number=1, noise_factor=0.02):
     early_stopping_counter = 0
     model_encoder_decoder.to(device)
     best_val_loss = float('inf')
@@ -98,7 +98,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
     return model_encoder_decoder, training_losses, validation_losses, noise_factor, X_denoised_train, X_denoised_val, X_denoised_test
 
 
-def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criterion, test_loader_chip2, label_encoder, model_name, conv_layers, chip_number):
+def evaluate_encoder_decoder(model_encoder_decoder, data_loader, device, criterion, test_loader_chip2):
     model_encoder_decoder.eval()
     model_encoder_decoder.to(device)
     total_test_loss = 0
