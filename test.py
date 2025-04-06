@@ -50,7 +50,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     X = np.where(X == -np.inf, finite_min, X)
     X = np.where(X == np.inf, finite_max, X)
 
-    # X = X + X * 0.02  # Data perturbation (same as in training)
+    X = X + X * 0.02  # Data perturbation (same as in training)
 
     # Get mean and std for class 4 normalization
     chip_column = "Chip"
