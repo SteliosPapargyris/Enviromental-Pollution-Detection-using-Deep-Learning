@@ -20,7 +20,7 @@ def plot_conf_matrix(conf_matrix, label_encoder, model_name):
     plt.show()
 
 
-def plot_train_and_val_losses(training_losses, validation_losses, model_name, chip_number):
+def plot_train_and_val_losses(training_losses, validation_losses, model_name):
     # Plotting
     plt.figure(figsize=(10, 5))
     plt.plot(training_losses, label='Training Loss')
@@ -30,5 +30,5 @@ def plot_train_and_val_losses(training_losses, validation_losses, model_name, ch
     plt.ylabel('Loss')
     plt.legend()
     plt.grid(True)
-    plt.savefig(f'out/train_and_val_loss_{model_name}_{chip_number}.png')
+    plt.savefig(f'out/train_and_val_loss_{model_name}.png')
     plt.show()

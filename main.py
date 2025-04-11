@@ -17,30 +17,15 @@ batch_size = 32
 learning_rate = 1e-3
 num_epochs = 500
 num_classes = 4
-
-base_path = "D:\Stelios\Work\Auth_AI\semester_3\Thesis\data\shuffled_data"
+base_path = "/Users/steliospapargyris/Documents/MyProjects/data_thesis/shuffled_dataset"
 
 matplotlib.use('Agg')  # Use a non-interactive backend
 torch.manual_seed(seed), torch.cuda.manual_seed_all(seed), np.random.seed(seed), random.seed(seed)
 torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Loop over chip numbers to train sequentially, loading the pretrained model from the previous chip
-for chip_number in [2]:
-    print(f"Training on Chip {chip_number}...")
-
-    # Load the shuffled dataset for the current chip
-    current_path = f'{base_path}/{chip_number}.csv'
-    X_train2, y_train2, X_val2, y_val2, X_test2, y_test2, X_denoised_train2, X_denoised_val2, X_denoised_test2, temp_train2, temp_val2, temp_test2, class_train2, class_val2, class_test2, label_encoder2 = load_and_preprocess_data(
-        file_path=current_path)
-
-    # Create data loaders for raw data
-    train_loader_chip2, val_loader_chip2, test_loader_chip2, *_ = create_dataloaders(batch_size=batch_size, X_train=X_train2,
-                                                                   y_train=y_train2, X_val=X_val2, y_val=y_val2,
-                                                                   X_test=X_test2, y_test=y_test2)
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 # Load the shuffled dataset for the current chip
-current_path = f'{base_path}/train.csv'
+current_path = f'{base_path}/mean_and_std_of_class_4_of_every_chip/train.csv'
 X_train, y_train, X_val, y_val, X_test, y_test, X_denoised_train, X_denoised_val, X_denoised_test, temp_train, temp_val, temp_test, class_train, class_val, class_test, label_encoder = load_and_preprocess_data(
     file_path=current_path)
 
@@ -65,10 +50,7 @@ model_denoiser, training_losses, validation_losses, noise_factor, X_denoised_tra
     scheduler=scheduler,
     model_encoder_decoder=model_denoiser,
     device=device,
-    model_encoder_decoder_name='denoiser_model',
-    train_loader_chip2=train_loader_chip2,
-    val_loader_chip2=val_loader_chip2,
-    chip_number=chip_number
+    model_encoder_decoder_name='denoiser_model'
 )
 
 # Reshape temperature arrays to match denoised data shape
@@ -80,15 +62,14 @@ temp_test = temp_test.reshape(-1, 1, 1)
 class_test = class_test.reshape(-1, 1, 1)
 
 # Plot training and validation losses
-plot_train_and_val_losses(training_losses, validation_losses, 'encoder_decoder_model', chip_number=chip_number)
+plot_train_and_val_losses(training_losses, validation_losses, 'encoder_decoder_model')
 
 # Evaluate the model on the test set
 avg_test_loss, X_denoised_test = evaluate_encoder_decoder(
     model_encoder_decoder=model_denoiser,
     data_loader=test_loader,
     criterion=criterion,
-    device=device,
-    test_loader_chip2=test_loader_chip2
+    device=device
 )
 
 temp_train = temp_train[:X_denoised_train.shape[0]]
@@ -136,7 +117,7 @@ model_classifier, training_losses, validation_losses = train_classifier(
 )
 
 # Plot training and validation losses
-plot_train_and_val_losses(training_losses, validation_losses, 'classifier_train', chip_number=5)
+plot_train_and_val_losses(training_losses, validation_losses, 'classifier_train')
 
 # Evaluate the model on the test set
 acc, prec, rec, f1, conf_mat = evaluate_classifier(
