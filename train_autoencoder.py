@@ -23,7 +23,7 @@ model = ConvDenoiser().to(device)
 # Define loss function, optimizer, and scheduler
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=3, verbose=True)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True)
 
 # Train the model on the current chip
 model_denoiser, training_losses, validation_losses = train_encoder_decoder(

@@ -73,6 +73,41 @@ def load_and_preprocess_data_classifier(file_path, test_size=0.1, random_state=4
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.222, random_state=random_state)
     return (X_train, y_train, X_val, y_val, X_test, y_test,label_encoder)
 
+def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
+    df = pd.read_csv(file_path)
+
+    columns_to_normalize = [f'Peak {i}' for i in range(1, 33)]
+    
+    # Shuffle dataset
+    df = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
+
+    df_copy = df.copy()  # Copy for normalization calculations
+
+    # Take only a fraction of the dataset
+    df = df.iloc[:int(len(df) * fraction)]
+
+    # Encode 'Class' labels
+    label_encoder = LabelEncoder()
+    df['Class'] = label_encoder.fit_transform(df['Class'])
+
+    # Extract features and labels
+    X = df.drop(['Class', 'Temperature', 'Chip'], axis=1)
+    y = df['Class']
+
+    # Get mean and std for class 4 normalization
+    chip_column = "Chip"
+    class_column = "Class"
+    target_class = 4
+    chip_5_target_rows = df_copy[(df_copy[chip_column] == 5) & (df_copy[class_column] == target_class)]
+    mean_values = chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
+    std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
+
+    # Normalize for non-class-4 samples
+    exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
+    X[exclude_class_4] = (X[exclude_class_4] - mean_values) / std_values
+
+    return X, y, label_encoder
+
 #TODO --> do load_and_preprocess_data_classifier
 def tensor_dataset_autoencoder(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None):
     train_loader, val_loader, test_loader = None, None, None
