@@ -90,14 +90,14 @@ def evaluate_encoder_decoder(model_encoder_decoder, test_loader, device, criteri
     print(f'Average Test Loss: {avg_test_loss:.6f}')
     return avg_test_loss
 
-def evaluate_encoder_decoder_for_classifier(model_encoder_decoder, test_loader, device):
+def evaluate_encoder_decoder_for_classifier(model_encoder_decoder, data_loader, device):
     model_encoder_decoder.eval()
     model_encoder_decoder.to(device)
     denoised_data=[]
     all_labels = []
 
     with torch.no_grad():
-        for inputs, labels in test_loader:
+        for inputs, labels in data_loader:
             inputs = inputs.to(device)
             labels = labels.to(device)
             inputs = inputs.unsqueeze(1)

@@ -74,7 +74,7 @@ model_classifier.load_state_dict(torch.load(classifier_path))
 criterion = nn.MSELoss()
 
 # Evaluate the model on the test set
-X_test_denoised, y_test = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, test_loader=test_loader, device=device)
+X_test_denoised, y_test = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=test_loader, device=device)
 test_dataset = torch.utils.data.TensorDataset(X_test_denoised, y_test)
 denoised_test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
