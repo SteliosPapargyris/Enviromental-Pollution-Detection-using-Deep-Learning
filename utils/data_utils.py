@@ -45,6 +45,11 @@ def load_and_preprocess_data_autoencoder(file_path, test_size=0.1, random_state=
     label_encoder = LabelEncoder()
     df['train_Class'] = label_encoder.fit_transform(df['train_Class'])
     df['match_Class'] = label_encoder.fit_transform(df['match_Class'])
+        # Normalize the 'temperature' column using Z-score standardization
+    df['train_Temperature'] = (df['train_Temperature'] - df['train_Temperature'].mean()) / df['train_Temperature'].std()
+    df.rename(columns={"train_Temperature": "train_Temperature_normalized"}, inplace=True)
+    df['match_Temperature'] = (df['match_Temperature'] - df['match_Temperature'].mean()) / df['match_Temperature'].std()
+    df.rename(columns={"match_Temperature": "match_Temperature_normalized"}, inplace=True)
     X = df.drop(columns=["train_Chip"])
     X = X.iloc[:, :33]
     y = df.drop(columns=["match_Chip"])
@@ -64,8 +69,11 @@ def load_and_preprocess_data_classifier(file_path, test_size=0.1, random_state=4
     label_encoder = LabelEncoder()
     df['train_Class'] = label_encoder.fit_transform(df['train_Class'])
     df['match_Class'] = label_encoder.fit_transform(df['match_Class'])
-    X = df.drop(columns=["train_Chip", "train_Temperature"])
-    X = X.iloc[:, :32]
+    # Normalize the 'temperature' column using Z-score standardization
+    df['train_Temperature'] = (df['train_Temperature'] - df['train_Temperature'].mean()) / df['train_Temperature'].std()
+    df.rename(columns={"train_Temperature": "train_Temperature_normalized"}, inplace=True)
+    X = df.drop(columns=["train_Chip"])
+    X = X.iloc[:, :33]
     y = df['train_Class']
 
     # Split the data while maintaining Temperature and Class tracking
@@ -108,29 +116,28 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
 
     return X, y, label_encoder
 
-#TODO --> do load_and_preprocess_data_classifier
 def tensor_dataset_autoencoder(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None):
     train_loader, val_loader, test_loader = None, None, None
 
     if X_train is not None and len(X_train) > 0:
         X_train = torch.tensor(X_train.values, dtype=torch.float32)
         y_train = torch.tensor(y_train.values, dtype=torch.float32)
-        X_train = X_train[:, :32]
-        y_train = y_train[:, :32]
+        X_train = X_train[:, :33]
+        y_train = y_train[:, :33]
         train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True, drop_last=True)
 
     if X_val is not None and len(X_val) > 0:
         X_val = torch.tensor(X_val.values, dtype=torch.float32)
         y_val = torch.tensor(y_val.values, dtype=torch.float32)
-        X_val = X_val[:, :32]
-        y_val = y_val[:, :32]
+        X_val = X_val[:, :33]
+        y_val = y_val[:, :33]
         val_loader = DataLoader(TensorDataset(X_val, y_val), batch_size=batch_size, shuffle=True, drop_last=True)
 
     if X_test is not None and len(X_test) > 0:
         X_test = torch.tensor(X_test.values, dtype=torch.float32)
         y_test = torch.tensor(y_test.values, dtype=torch.float32)
-        X_test = X_test[:, :32]
-        y_test = y_test[:, :32]
+        X_test = X_test[:, :33]
+        y_test = y_test[:, :33]
         test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=batch_size, shuffle=True, drop_last=False)
 
     return train_loader, val_loader, test_loader
@@ -142,19 +149,19 @@ def tensor_dataset_classifier(batch_size: int, X_train=None, y_train=None, X_val
     if X_train is not None and len(X_train) > 0:
         X_train = torch.tensor(X_train.values, dtype=torch.float32)
         y_train = torch.tensor(y_train.values, dtype=torch.long)
-        X_train = X_train[:, :32]
+        X_train = X_train[:, :33]
         train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True, drop_last=True)
 
     if X_val is not None and len(X_val) > 0:
         X_val = torch.tensor(X_val.values, dtype=torch.float32)
         y_val = torch.tensor(y_val.values, dtype=torch.long)
-        X_val = X_val[:, :32]
+        X_val = X_val[:, :33]
         val_loader = DataLoader(TensorDataset(X_val, y_val), batch_size=batch_size, shuffle=True, drop_last=True)
 
     if X_test is not None and len(X_test) > 0:
         X_test = torch.tensor(X_test.values, dtype=torch.float32)
         y_test = torch.tensor(y_test.values, dtype=torch.long)
-        X_test = X_test[:, :32]
+        X_test = X_test[:, :33]
         test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=batch_size, shuffle=True, drop_last=False)
 
     return train_loader, val_loader, test_loader

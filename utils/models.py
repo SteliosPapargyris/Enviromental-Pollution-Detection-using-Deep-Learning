@@ -28,7 +28,7 @@ class ConvDenoiser(nn.Module):
         # Lout = (Lin - 1) * stride - 2 * padding + kernel_size + out_padding
         self.t_conv1 = nn.ConvTranspose1d(64, 64, kernel_size=2, stride=2)
         # Lout = (8 - 1) * 2 - 2 * 0 + 2 + 0 --> Lout= 16
-        self.t_conv2 = nn.ConvTranspose1d(64, 32, kernel_size=2, stride=2)  # Double the length
+        self.t_conv2 = nn.ConvTranspose1d(64, 32, kernel_size=2, stride=2, output_padding=1) # Double the length
         # Lout = (16 - 1) * 2 - 2 * 0 + 2 + 0 --> Lout = 32
 
         self.conv_out = nn.Conv1d(32, 1, kernel_size=3, padding=1)
