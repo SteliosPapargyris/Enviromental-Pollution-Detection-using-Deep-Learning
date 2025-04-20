@@ -4,7 +4,6 @@ from utils.models import ConvDenoiser, Classifier
 from utils.data_utils import load_and_preprocess_data_classifier, tensor_dataset_classifier
 from utils.train_test_utils import train_classifier, evaluate_classifier, evaluate_encoder_decoder_for_classifier
 from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses
-import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
 

@@ -2,15 +2,12 @@ import torch.nn as nn
 import torch.optim as optim
 from utils.data_utils import dataset_creation, load_and_preprocess_data_autoencoder, tensor_dataset_autoencoder
 from utils.train_test_utils import train_encoder_decoder, evaluate_encoder_decoder
-from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses
-from utils.models import ConvDenoiser, Classifier
-import numpy as np
-from sklearn.preprocessing import LabelEncoder
+from utils.plot_utils import plot_train_and_val_losses
+from utils.models import ConvDenoiser
 from utils.config import *
 import pandas as pd
 
-train_df = pd.read_csv(f"{current_path}/train.csv")
-merged_df = dataset_creation(train_df=train_df)
+df = dataset_creation([1, 2, 3, 4], baseline_chip=1)
 
 # Load the shuffled dataset for the current chip
 X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_autoencoder(file_path=f"{current_path}/merged.csv")

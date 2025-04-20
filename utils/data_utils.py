@@ -5,36 +5,43 @@ from torch.utils.data import DataLoader, TensorDataset
 import torch
 import numpy as np
 import os
+from typing import List
 
-def dataset_creation(train_df) -> pd.DataFrame:
-
-    merged_csv_path = "/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/shuffled_dataset/merged.csv"
+def dataset_creation(csv_indices: List[int], baseline_chip: int) -> pd.DataFrame:
+    base_path = "/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/"
+    merged_csv_path = os.path.join(base_path, "shuffled_dataset", "merged.csv")
 
     # If file exists, skip creation and just return it
     if os.path.exists(merged_csv_path):
         return pd.read_csv(merged_csv_path)
-    
-    df2_compare = pd.read_csv("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/2.csv")
+
+    # Merge specified CSVs
+    dfs = [pd.read_csv(os.path.join(base_path, f"{i}.csv")) for i in csv_indices]
+    merged_train_df = pd.concat(dfs, ignore_index=True).sample(frac=1).reset_index(drop=True)  # Shuffle
+
+    # Load baseline chip
+    df_baseline = pd.read_csv(os.path.join(base_path, f"{baseline_chip}.csv"))
     merged_rows = []
 
-    for _, train_row in train_df.iterrows():
-        matching_rows = df2_compare[(df2_compare['Temperature'] == train_row['Temperature']) & (df2_compare['Class'] == train_row['Class'])]
+    for _, train_row in merged_train_df.iterrows():
+        matching_rows = df_baseline[
+            (df_baseline['Temperature'] == train_row['Temperature']) &
+            (df_baseline['Class'] == train_row['Class'])
+        ]
         for _, match_row in matching_rows.iterrows():
-            # Convert both rows to Series, reset index, and rename overlapping columns
             train_series = train_row.add_prefix("train_")
             match_series = match_row.add_prefix("match_")
-            # Combine the two rows horizontally
             merged_row = pd.concat([train_series, match_series])
             merged_rows.append(merged_row)
 
-    # Create a DataFrame from clean Series list
     merged_df = pd.DataFrame(merged_rows)
 
     # Remove duplicated columns
     merged_df = merged_df.loc[:, ~merged_df.columns.duplicated()]
 
-    # Save the final merged file
-    merged_df.to_csv("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/shuffled_dataset/merged.csv", index=False)
+    # Save to file
+    os.makedirs(os.path.dirname(merged_csv_path), exist_ok=True)
+    merged_df.to_csv(merged_csv_path, index=False)
     return merged_df
 
 def load_and_preprocess_data_autoencoder(file_path, test_size=0.1, random_state=42):
