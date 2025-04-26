@@ -11,7 +11,7 @@ num_epochs = 500
 num_classes = 4
 base_path = "/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/shuffled_dataset"
 current_path = f"{base_path}"
-test_file_path = f'{base_path}/5.csv'
+test_file_path = f'{base_path}/4.csv'
 matplotlib.use('Agg')  # Use a non-interactive backend
 torch.manual_seed(seed), torch.cuda.manual_seed_all(seed), np.random.seed(seed), random.seed(seed)
 torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
