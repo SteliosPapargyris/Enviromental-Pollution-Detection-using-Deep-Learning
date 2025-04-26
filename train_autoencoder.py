@@ -7,7 +7,7 @@ from utils.models import ConvDenoiser
 from utils.config import *
 import pandas as pd
 
-df = dataset_creation([1, 2, 4, 5], baseline_chip=2)
+df = dataset_creation([1, 2, 4, 5], baseline_chip=4)
 
 # Load the shuffled dataset for the current chip
 X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_autoencoder(file_path=f"{current_path}/merged.csv")
