@@ -11,9 +11,9 @@ def dataset_creation(csv_indices: List[int], baseline_chip: int) -> pd.DataFrame
     base_path = "/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/"
     merged_csv_path = os.path.join(base_path, "shuffled_dataset", "merged.csv")
 
-    # If file exists, skip creation and just return it
-    if os.path.exists(merged_csv_path):
-        return pd.read_csv(merged_csv_path)
+    # # If file exists, skip creation and just return it
+    # if os.path.exists(merged_csv_path):
+    #     return pd.read_csv(merged_csv_path)
 
     # Merge specified CSVs
     dfs = [pd.read_csv(os.path.join(base_path, f"{i}.csv")) for i in csv_indices]
