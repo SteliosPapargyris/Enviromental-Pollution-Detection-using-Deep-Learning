@@ -43,10 +43,7 @@ python test.py
 ## 📢 Release Notes
 
 ### 🚀 Upcoming Changes
-- Add Temperature as a feature to classifier (before feeding temp into classifier i should normalize this column (StandardScaler, z-score etc or whatever)
 - Add from Chip 5 to training (10%, then 20% etc until test accuracy is high)
-- Change unseen Chip from 5 to 1 then 2 then 3 then 4.
-- Change Chip 2 as a "base" Chip with Chip 1,3,4
 - .clone --> in latent space of encoder of z
 - Write the thesis
 
@@ -65,13 +62,16 @@ Drop encoder to 8 bits.
 
 ### ✅ Implemented
 
+🔹 v1.4 (May 2025)
+- Added Temperature as a feature to classifier
+- Changed unseen chips and did all the combinations for train and test chips and of course the corresponding baseline Chips. Best results for Train Chips 1,2,3,4 and Test Chip 5 and baseline Chip 4
+- 
 🔹 v1.3 (April 2025)
 - 🛠 Added a **dense layer after Conv2** in the convolutional denoiser for improved feature extraction
 - Shuffle dataset (e.g chip 1, 3, 4 shuffled) and the target chip will be chip 2. Not necessary to do continual learning.
 
 🔹 v1.2 (March 2025)
 - 🏷️ Standardizing all chips with autoencoders to follow the structure of **Chip 1** (chosen as the reference chip)
-
 
 🔹 v1.1 (March 2025)
 - ⚡ Optimized deep learning model for faster inference
