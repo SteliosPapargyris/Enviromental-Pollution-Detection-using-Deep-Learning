@@ -40,6 +40,7 @@ class ConvDenoiser(nn.Module):
         # and maxpooling after
         z = self.pool1(F.relu(self.bn1(self.conv1(x))))
         z = self.pool2(F.relu(self.bn2(self.conv2(z))))
+        z_latent = z.clone()
 
  # Flatten and pass through dense layer
         batch_size = z.size(0)
@@ -56,7 +57,7 @@ class ConvDenoiser(nn.Module):
         # transpose again, output should have a sigmoid applied
         x = F.sigmoid(self.conv_out(x))
 
-        return x, z
+        return x, z_latent
 
 
 class Classifier(nn.Module):
