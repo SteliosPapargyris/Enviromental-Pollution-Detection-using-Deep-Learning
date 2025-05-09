@@ -43,6 +43,26 @@ python test.py
 ## 📢 Release Notes
 
 ### 🚀 Upcoming Changes
+- **MOST IMPORTANT** **Play with many Chips(19 (e.g) in training 1 in test)**
+- Take **ideas** from other **papers** (for let's say autoencoder -> xeR^32 -> x anhkei R^32
+- Start with describing the dataset (ask for the paper)
+- Auto Encoder describe z latent space, we use it in the decoder (figure) mathematically and visually + Normalization in input (like callibration), based on class 4 tihs mathematical expression (mean and std of class 4 to other classes in the same chip)
+- After that just say that i have this classifier
+- In proposed Method i should be as abstract as possible. And then in a different chapter more detail to every
+- What is the proposed method -> encoder-decoder, after that Global Local Model (Feature Extraction)
+- I should compare "same" models with same features not a model that has a temperature feature with one that does not
+- Proposed Method -> auto encoder with 32 features --> % accuracy
+- CNN --> % accuracy
+- etc
+- Proposed Method -> auto encoder with 33 features --> % accuracy (bigger accuracy with temperature) not compare with cnn or global and local with 32 features
+- In a **table** i should compare those different methods (must be clear)
+- Class 4 Mean and subtract
+other (not class 4) classes
+with this mean of class 4
+100.0% 48.12% (It's a part of autoencoder implementation so it must be into thesis)
+- Normalization in plots not with numbers. Numbers only for our results
+
+
 - Add from Chip 5 to training (10%, then 20% etc until test accuracy is high)
 - .clone --> in latent space of encoder of z
 - Write the thesis
