@@ -1,19 +1,14 @@
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 import torch
-import numpy as np
 import os
 from typing import List
+from utils.config import *
 
 def dataset_creation(csv_indices: List[int], baseline_chip: int) -> pd.DataFrame:
-    base_path = "/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/"
     merged_csv_path = os.path.join(base_path, "shuffled_dataset", "merged.csv")
-
-    # # If file exists, skip creation and just return it
-    # if os.path.exists(merged_csv_path):
-    #     return pd.read_csv(merged_csv_path)
 
     # Merge specified CSVs
     dfs = [pd.read_csv(os.path.join(base_path, f"{i}.csv")) for i in csv_indices]
@@ -44,7 +39,7 @@ def dataset_creation(csv_indices: List[int], baseline_chip: int) -> pd.DataFrame
     merged_df.to_csv(merged_csv_path, index=False)
     return merged_df
 
-def load_and_preprocess_data_autoencoder(file_path, test_size=0.1, random_state=42):
+def load_and_preprocess_data_autoencoder(file_path, random_state=42):
     # Load data
     df = pd.read_csv(file_path)
 
@@ -68,7 +63,7 @@ def load_and_preprocess_data_autoencoder(file_path, test_size=0.1, random_state=
     return (X_train, y_train, X_val, y_val, X_test, y_test,label_encoder)
 
 
-def load_and_preprocess_data_classifier(file_path, test_size=0.1, random_state=42):
+def load_and_preprocess_data_classifier(file_path, random_state=42):
     # Load data
     df = pd.read_csv(file_path)
 
@@ -110,10 +105,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     y = df['Class']
 
     # Get mean and std for class 4 normalization
-    chip_column = "Chip"
-    class_column = "Class"
-    target_class = 4
-    chip_5_target_rows = df_copy[(df_copy[chip_column] == 5) & (df_copy[class_column] == target_class)]
+    chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class)]
     mean_values = chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
     std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
 

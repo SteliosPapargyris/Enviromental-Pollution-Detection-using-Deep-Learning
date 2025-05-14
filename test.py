@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
-import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from utils.data_utils import tensor_dataset_classifier, load_and_preprocess_test_data
 from utils.train_test_utils import evaluate_encoder_decoder_for_classifier, evaluate_classifier

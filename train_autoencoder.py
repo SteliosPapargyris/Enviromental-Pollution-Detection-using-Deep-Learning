@@ -5,12 +5,11 @@ from utils.train_test_utils import train_encoder_decoder, evaluate_encoder_decod
 from utils.plot_utils import plot_train_and_val_losses
 from utils.models import ConvDenoiser
 from utils.config import *
-import pandas as pd
 
-df = dataset_creation([1, 2, 3, 4], baseline_chip=4)
+df = dataset_creation(num_chips, baseline_chip=baseline_chip)
 
 # Load the shuffled dataset for the current chip
-X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_autoencoder(file_path=f"{current_path}/merged.csv")
+X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_autoencoder(file_path=f"{current_path}/shuffled_dataset/merged.csv")
 
 # Create data loaders for raw data
 train_loader, val_loader, test_loader = tensor_dataset_autoencoder(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)
