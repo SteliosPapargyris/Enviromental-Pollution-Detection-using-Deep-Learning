@@ -43,7 +43,6 @@ python test.py
 ## 📢 Release Notes
 
 ### 🚀 Upcoming Changes
-- **MOST IMPORTANT** **Play with many Chips(19 (e.g) in training 1 in test)**
 - Take **ideas** from other **papers** (for let's say autoencoder -> xeR^32 -> x anhkei R^32
 - Start with describing the dataset (ask for the paper)
 - Auto Encoder describe z latent space, we use it in the decoder (figure) mathematically and visually + Normalization in input (like callibration), based on class 4 tihs mathematical expression (mean and std of class 4 to other classes in the same chip)
@@ -62,9 +61,6 @@ with this mean of class 4
 100.0% 48.12% (It's a part of autoencoder implementation so it must be into thesis)
 - Normalization in plots not with numbers. Numbers only for our results
 
-
-- Add from Chip 5 to training (10%, then 20% etc until test accuracy is high)
-- .clone --> in latent space of encoder of z
 - Write the thesis
 
 For future:
@@ -81,6 +77,13 @@ pool2: from 8 to 6
 Drop encoder to 8 bits.
 
 ### ✅ Implemented
+
+🔹 v1.5 (May 2025)
+- Implemented project with 20 chips and 100 chips also
+- Added percentages of test chip in training and remove those samples of data from inference
+- .clone in latent space of encoder of z
+
+
 
 🔹 v1.4 (May 2025)
 - Added Temperature as a feature to classifier
