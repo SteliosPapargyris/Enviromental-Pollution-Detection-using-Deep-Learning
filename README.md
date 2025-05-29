@@ -19,14 +19,9 @@ pip install -r requirements.txt
 
 ## 🚀 Usage
 
-Run the main script:
+Run the autoencoder and classifier and test script:
 ```bash
-python main.py
-```
-Run tests:
-
-```bash
-python test.py
+python train_autoencoder.py && python train_classifier.py && python test.py
 ```
 
 ## 🛠 Project Structure
