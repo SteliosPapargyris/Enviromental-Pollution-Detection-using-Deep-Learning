@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, precision_score, recall_score, f1_score
 import pandas as pd
+from utils.config import *
 
 
 def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name):
@@ -61,7 +62,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
             print(f'No improvement in validation loss for {early_stopping_counter} consecutive epochs.')
 
         # Early stopping condition
-        if early_stopping_counter >= 6:
+        if early_stopping_counter >= 20:
             print('Early stopping triggered after 6 epochs with no improvement in validation loss.')
             model_encoder_decoder.load_state_dict(torch.load(f'pths/{model_encoder_decoder_name}.pth'))
             print('Model restored to best state based on validation loss.')
@@ -162,7 +163,8 @@ def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, sch
             print(f'No improvement in validation loss for {early_stopping_counter} consecutive epochs.')
 
         # Early stopping condition
-        if early_stopping_counter >= 6:
+        # TODO early_stopping patience to config.py
+        if early_stopping_counter >= early_stopping_max_number:
             print('Early stopping triggered after 6 epochs with no improvement in validation loss.')
             model_classifier.load_state_dict(torch.load(f'pths/{model_classifier_name}.pth'))
             print('Model restored to best state based on validation loss.')
