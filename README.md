@@ -38,6 +38,7 @@ python train_autoencoder.py && python train_classifier.py && python test.py
 ## 📢 Release Notes
 
 ### 🚀 Upcoming Changes
+- Normalize by dividing with the max of every peak
 - Take **ideas** from other **papers** (for let's say autoencoder -> xeR^32 -> x anhkei R^32
 - Start with describing the dataset (ask for the paper)
 - Auto Encoder describe z latent space, we use it in the decoder (figure) mathematically and visually + Normalization in input (like callibration), based on class 4 tihs mathematical expression (mean and std of class 4 to other classes in the same chip)
