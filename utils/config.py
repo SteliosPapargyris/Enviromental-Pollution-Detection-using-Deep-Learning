@@ -11,14 +11,14 @@ early_stopping_max_number = 20
 learning_rate = 1e-3
 num_epochs = 500
 num_classes = 4
-chip_exclude = 5
+chip_exclude = 10
 num_chips = list(range(1, chip_exclude))
 baseline_chip = 4
 chip_column = "Chip"
 class_column = "Class"
 target_class = 4
-num_chip_selection = 5
-base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/{num_chip_selection}chips"
+num_chip_selection = 10
+base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/every_sample_divide_by_max_value_of_each_row/fts_mzi_dataset/{num_chip_selection}chips"
 current_path = f"{base_path}"
 test_file_path = f'{base_path}/{chip_exclude}.csv'
 matplotlib.use('Agg')  # Use a non-interactive backend
