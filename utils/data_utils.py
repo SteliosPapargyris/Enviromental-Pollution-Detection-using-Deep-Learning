@@ -121,16 +121,30 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     # X_norm = (X.subtract(row_min, axis=0)
     #             .div(denominator, axis=0))
     
-     # --- Robust Normalization: (x - median) / IQR ---
-    row_median = X.median(axis=1)
-    row_q75 = X.quantile(0.75, axis=1)
-    row_q25 = X.quantile(0.25, axis=1)
-    row_iqr = (row_q75 - row_q25).replace(0, 1)  # Avoid divide-by-zero
+    # Min-Max normalization per row for samples with Class 4 excluded
+    # Identify Class 4 (to exclude from normalization)
+    class_4_encoded = label_encoder.transform(['4'])[0]
+    mask_not_class4 = (df['Class'] != class_4_encoded)
 
-    X_robust = X.subtract(row_median, axis=0).div(row_iqr, axis=0)
+    # Min-Max normalization per row for samples not in Class 4
+    row_min = X[mask_not_class4].min(axis=1)
+    row_max = X[mask_not_class4].max(axis=1)
+    denominator = (row_max - row_min).replace(0, 1)
+
+    X.loc[mask_not_class4] = (
+        X.loc[mask_not_class4].subtract(row_min, axis=0)
+                              .div(denominator, axis=0)
+    )
+    #  # --- Robust Normalization: (x - median) / IQR ---
+    # row_median = X.median(axis=1)
+    # row_q75 = X.quantile(0.75, axis=1)
+    # row_q25 = X.quantile(0.25, axis=1)
+    # row_iqr = (row_q75 - row_q25).replace(0, 1)  # Avoid divide-by-zero
+
+    # X_robust = X.subtract(row_median, axis=0).div(row_iqr, axis=0)
 
 
-    return X_robust, y, label_encoder
+    return X, y, label_encoder
 
 def tensor_dataset_autoencoder(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None):
     train_loader, val_loader, test_loader = None, None, None
