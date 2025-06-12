@@ -18,7 +18,7 @@ chip_column = "Chip"
 class_column = "Class"
 target_class = 4
 num_chip_selection = 100
-base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/every_sample_divide_by_max_value_of_each_row/fts_mzi_dataset/{num_chip_selection}chips"
+base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/every_sample_minmax_every_row/fts_mzi_dataset/{num_chip_selection}chips"
 current_path = f"{base_path}"
 test_file_path = f'{base_path}/{chip_exclude}.csv'
 matplotlib.use('Agg')  # Use a non-interactive backend

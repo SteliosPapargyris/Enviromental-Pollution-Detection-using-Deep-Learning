@@ -104,16 +104,24 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     X = df.drop(['Class', 'Temperature', 'Chip'], axis=1)
     y = df['Class']
 
-    # Get mean and std for class 4 normalization
-    chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class)]
-    mean_values = chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
-    std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
+    # # Get mean and std for class 4 normalization
+    # chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class)]
+    # mean_values = chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
+    # std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
 
-    # Normalize for non-class-4 samples
-    exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
-    X[exclude_class_4] = (X[exclude_class_4] - mean_values) / std_values
+    # # Normalize for non-class-4 samples
+    # exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
+    # X[exclude_class_4] = (X[exclude_class_4] - mean_values) / std_values
 
-    return X, y, label_encoder
+    # Min-Max normalization per row for all samples
+    row_min = X.min(axis=1)
+    row_max = X.max(axis=1)
+    denominator = (row_max - row_min).replace(0, 1)  # Avoid divide-by-zero
+
+    X_norm = (X.subtract(row_min, axis=0)
+                .div(denominator, axis=0))
+
+    return X_norm, y, label_encoder
 
 def tensor_dataset_autoencoder(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None):
     train_loader, val_loader, test_loader = None, None, None
