@@ -91,8 +91,6 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     # Shuffle dataset
     df = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
 
-    df_copy = df.copy()  # Copy for normalization calculations
-
     # Take only a fraction of the dataset
     df = df.iloc[:int(len(df) * fraction)]
 
@@ -121,20 +119,32 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     # X_norm = (X.subtract(row_min, axis=0)
     #             .div(denominator, axis=0))
     
-    # Min-Max normalization per row for samples with Class 4 excluded
-    # Identify Class 4 (to exclude from normalization)
-    class_4_encoded = label_encoder.transform(['4'])[0]
-    mask_not_class4 = (df['Class'] != class_4_encoded)
+    # # Min-Max normalization per row for samples with Class 4 excluded
+    # # Identify Class 4 (to exclude from normalization)
+    # class_4_encoded = label_encoder.transform(['4'])[0]
+    # mask_not_class4 = (df['Class'] != class_4_encoded)
 
-    # Min-Max normalization per row for samples not in Class 4
-    row_min = X[mask_not_class4].min(axis=1)
-    row_max = X[mask_not_class4].max(axis=1)
-    denominator = (row_max - row_min).replace(0, 1)
+    # # Min-Max normalization per row for samples not in Class 4
+    # row_min = X[mask_not_class4].min(axis=1)
+    # row_max = X[mask_not_class4].max(axis=1)
+    # denominator = (row_max - row_min).replace(0, 1)
 
-    X.loc[mask_not_class4] = (
-        X.loc[mask_not_class4].subtract(row_min, axis=0)
-                              .div(denominator, axis=0)
-    )
+    # X.loc[mask_not_class4] = (
+    #     X.loc[mask_not_class4].subtract(row_min, axis=0)
+    #                           .div(denominator, axis=0)
+    # )
+
+    # --- per-Peak Min-Max normalization using precomputed stats saved as .csv ---
+    # Load column-wise min/max values from training
+    col_stats_path = f'/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_minmax_excl_chip10_class4/fts_mzi_dataset/col_minmax_stats_excl_chip10_class4.csv'
+    stats_df = pd.read_csv(col_stats_path, index_col=0)
+    col_min = stats_df['min']
+    col_max = stats_df['max']
+    denominator = (col_max - col_min).replace(0, 1)
+
+    # Apply Min-Max normalization using saved stats
+    X = X.subtract(col_min).div(denominator)
+
     #  # --- Robust Normalization: (x - median) / IQR ---
     # row_median = X.median(axis=1)
     # row_q75 = X.quantile(0.75, axis=1)
