@@ -148,11 +148,27 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     # # --- Z-score Normalization ---
     col_stats_path = f'/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_standardscaler_excl_chip_class{target_class}/fts_mzi_dataset/{chip_exclude}chips_20percent_noise/normalize_by_column_standard_exclude_chip_and_class{chip_exclude}_class{target_class}.csv'
     stats_df = pd.read_csv(col_stats_path, index_col=0)
-    col_mean = stats_df['mean']
-    col_std = stats_df['std'].replace(0, 1)
+    
+    # Step 1: Add a feature index (assuming order matters and matches X's columns)
+    stats_df['feature_idx'] = stats_df.groupby('chip').cumcount()
+    stats_df = stats_df.reset_index() 
 
-    # Apply Standard Scaler normalization using saved stats
-    X = X.subtract(col_mean).div(col_std)
+    # Step 2: Pivot so each row is one feature, each column is a chip's value
+    mean_df = stats_df.pivot(index='feature_idx', columns='chip', values='mean')
+    std_df = stats_df.pivot(index='feature_idx', columns='chip', values='std')
+
+    # Step 3: Compute the average across chips (i.e., across columns)
+    avg_mean = mean_df.mean(axis=1)
+    avg_std = std_df.replace(0, 1).mean(axis=1)
+
+    # Step 4: Mask for class ≠ 4 (inference-time known labels)
+    class_mask = y != 3
+
+    # Step 5: Apply normalization only to non-class-4 rows
+    X_normalized = X.copy()
+    X_normalized.loc[class_mask] = (
+        X.loc[class_mask].subtract(avg_mean.values, axis=1).div(avg_std.values, axis=1)
+    )
 
     #  # --- Robust Normalization: (x - median) / IQR ---
     # row_median = X.median(axis=1)
@@ -162,8 +178,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
 
     # X_robust = X.subtract(row_median, axis=0).div(row_iqr, axis=0)
 
-
-    return X, y, label_encoder
+    return X_normalized, y, label_encoder
 
 def tensor_dataset_autoencoder(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None):
     train_loader, val_loader, test_loader = None, None, None
