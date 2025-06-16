@@ -135,15 +135,24 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     # )
 
     # --- per-Peak Min-Max normalization using precomputed stats saved as .csv ---
-    # Load column-wise min/max values from training
-    col_stats_path = f'/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_minmax_excl_chip_class{target_class}/fts_mzi_dataset/{chip_exclude}chips_20percent_noise/col_minmax_stats_excl_chip{chip_exclude}_class{target_class}.csv'
-    stats_df = pd.read_csv(col_stats_path, index_col=0)
-    col_min = stats_df['min']
-    col_max = stats_df['max']
-    denominator = (col_max - col_min).replace(0, 1)
+    # # Load column-wise min/max values from training
+    # col_stats_path = f'/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_standardscaler_excl_chip_class{target_class}/fts_mzi_dataset/{chip_exclude}chips_20percent_noise/col_minmax_stats_excl_chip{chip_exclude}_class{target_class}.csv'
+    # stats_df = pd.read_csv(col_stats_path, index_col=0)
+    # col_min = stats_df['min']
+    # col_max = stats_df['max']
+    # denominator = (col_max - col_min).replace(0, 1)
 
-    # Apply Min-Max normalization using saved stats
-    X = X.subtract(col_min).div(denominator)
+    # # Apply Min-Max normalization using saved stats
+    # X = X.subtract(col_min).div(denominator)
+
+    # # --- Z-score Normalization ---
+    col_stats_path = f'/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_standardscaler_excl_chip_class{target_class}/fts_mzi_dataset/{chip_exclude}chips_20percent_noise/normalize_by_column_standard_exclude_chip_and_class{chip_exclude}_class{target_class}.csv'
+    stats_df = pd.read_csv(col_stats_path, index_col=0)
+    col_mean = stats_df['mean']
+    col_std = stats_df['std'].replace(0, 1)
+
+    # Apply Standard Scaler normalization using saved stats
+    X = X.subtract(col_mean).div(col_std)
 
     #  # --- Robust Normalization: (x - median) / IQR ---
     # row_median = X.median(axis=1)

@@ -18,7 +18,7 @@ chip_column = "Chip"
 class_column = "Class"
 target_class = 4
 num_chip_selection = 50
-base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_minmax_excl_chip_class{target_class}/fts_mzi_dataset/{num_chip_selection}chips_20percent_noise"
+base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_standardscaler_excl_chip_class{target_class}/fts_mzi_dataset/{num_chip_selection}chips_20percent_noise"
 current_path = f"{base_path}"
 test_file_path = f'{base_path}/{chip_exclude}.csv'
 matplotlib.use('Agg')  # Use a non-interactive backend
