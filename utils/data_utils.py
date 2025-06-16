@@ -136,7 +136,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
 
     # --- per-Peak Min-Max normalization using precomputed stats saved as .csv ---
     # Load column-wise min/max values from training
-    col_stats_path = f'/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_minmax_excl_chip10_class4/fts_mzi_dataset/col_minmax_stats_excl_chip10_class4.csv'
+    col_stats_path = f'/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_minmax_excl_chip_class{target_class}/fts_mzi_dataset/{chip_exclude}chips_20percent_noise/col_minmax_stats_excl_chip{chip_exclude}_class{target_class}.csv'
     stats_df = pd.read_csv(col_stats_path, index_col=0)
     col_min = stats_df['min']
     col_max = stats_df['max']
