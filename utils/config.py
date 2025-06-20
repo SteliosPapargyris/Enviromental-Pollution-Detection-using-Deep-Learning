@@ -6,8 +6,8 @@ import numpy as np
 # Hyperparameters
 seed = 42
 batch_size = 32
-patience = 10
-early_stopping_max_number = 20
+patience = 2
+early_stopping_max_number = 6
 learning_rate = 1e-3
 num_epochs = 500
 num_classes = 4
