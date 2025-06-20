@@ -3,10 +3,9 @@ from utils.config import *
 from utils.models import ConvDenoiser, Classifier
 from utils.data_utils import load_and_preprocess_data_classifier, tensor_dataset_classifier
 from utils.train_test_utils import train_classifier, evaluate_classifier, evaluate_encoder_decoder_for_classifier
-from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses
+from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses, plot_denoised_mean_feature_per_class_before_classifier
 import torch.nn as nn
 import torch.optim as optim
-
 
 # Load the shuffled dataset for the current chip
 X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_classifier(file_path=f"{current_path}/shuffled_dataset/merged.csv")
@@ -28,6 +27,14 @@ scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience
 X_train_denoised, y_train = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=train_loader, device=device)
 X_val_denoised, y_val = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=val_loader, device=device)
 X_test_denoised, y_test = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=test_loader, device=device)
+
+# Plot of mean denoised feature per class before classifier training
+plot_denoised_mean_feature_per_class_before_classifier(
+    X_tensor=X_train_denoised,
+    y_tensor=y_train,
+    save_path='out/denoised_train_mean_feature_per_class.png',
+    title='Mean Denoised Peaks per Class before Classifier'
+)
 
 # Create new DataLoaders for classifier training
 train_dataset = torch.utils.data.TensorDataset(X_train_denoised, y_train)
