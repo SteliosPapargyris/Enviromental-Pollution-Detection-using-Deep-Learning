@@ -21,7 +21,6 @@ model_classifier = Classifier().to(device)
 # Define loss function, optimizer, and scheduler
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model_classifier.parameters(), lr=learning_rate)
-# TODO patience to config.py
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=patience, verbose=True)
 
 X_train_denoised, y_train = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=train_loader, device=device)

@@ -48,7 +48,10 @@ def load_and_preprocess_data_autoencoder(file_path, random_state=42):
     label_encoder = LabelEncoder()
     df['train_Class'] = label_encoder.fit_transform(df['train_Class'])
     df['match_Class'] = label_encoder.fit_transform(df['match_Class'])
-
+    df['train_Temperature'] = (df['train_Temperature'] - df['train_Temperature'].mean()) / df['train_Temperature'].std()
+    df.rename(columns={"train_Temperature": "train_Temperature_normalized"}, inplace=True)
+    df['match_Temperature'] = (df['match_Temperature'] - df['match_Temperature'].mean()) / df['match_Temperature'].std()
+    df.rename(columns={"match_Temperature": "match_Temperature_normalized"}, inplace=True)
     X = df.drop(columns=["train_Chip"])
     X = X.iloc[:, :33]
     y = df.drop(columns=["match_Chip"])
@@ -68,6 +71,10 @@ def load_and_preprocess_data_classifier(file_path, random_state=42):
     label_encoder = LabelEncoder()
     df['train_Class'] = label_encoder.fit_transform(df['train_Class'])
     df['match_Class'] = label_encoder.fit_transform(df['match_Class'])
+    
+    # Normalize the 'temperature' column using Z-score standardization
+    df['train_Temperature'] = (df['train_Temperature'] - df['train_Temperature'].mean()) / df['train_Temperature'].std()
+    df.rename(columns={"train_Temperature": "train_Temperature_normalized"}, inplace=True)
 
     X = df.drop(columns=["train_Chip"])
     X = X.iloc[:, :33]
@@ -81,8 +88,9 @@ def load_and_preprocess_data_classifier(file_path, random_state=42):
 def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     df = pd.read_csv(file_path)
 
-    columns_to_normalize = ['Temperature'] + [f'Peak {i}' for i in range(1, 33)]
-    
+    # columns_to_normalize = ['Temperature'] + [f'Peak {i}' for i in range(1, 33)]
+    columns_to_normalize = [f'Peak {i}' for i in range(1, 33)]
+
     plot_raw_test_mean_feature_per_class(
     df,
     class_column='Class',
@@ -92,6 +100,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     # Shuffle dataset
     df = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
 
+    df_copy = df.copy()
     # Take only a fraction of the dataset
     df = df.iloc[:int(len(df) * fraction)]
 
@@ -100,11 +109,12 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     df['Class'] = label_encoder.fit_transform(df['Class'])
 
     # Extract features and labels
-    X = df.drop(['Class', 'Chip'], axis=1)
+    # X = df.drop(['Class', 'Chip'], axis=1)
+    X = df.drop(['Class', 'Temperature', 'Chip'], axis=1)
     y = df['Class']
 
     # Get mean and std for class 4 normalization
-    chip_5_target_rows = df[(df[chip_column] == chip_exclude) & (df[class_column] == target_class -1)] # -1 due to label encoder
+    chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class)] # -1 due to label encoder
     mean_values = chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
     std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
 
