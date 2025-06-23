@@ -62,7 +62,7 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
             print(f'No improvement in validation loss for {early_stopping_counter} consecutive epochs.')
 
         # Early stopping condition
-        if early_stopping_counter >= 20:
+        if early_stopping_counter >= early_stopping_max_number:
             print('Early stopping triggered after 6 epochs with no improvement in validation loss.')
             model_encoder_decoder.load_state_dict(torch.load(f'pths/{model_encoder_decoder_name}.pth'))
             print('Model restored to best state based on validation loss.')

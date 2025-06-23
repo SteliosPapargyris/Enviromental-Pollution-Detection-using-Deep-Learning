@@ -114,10 +114,11 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     y = df['Class']
 
     # Get mean and std for class 4 normalization
-    chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class)] # -1 due to label encoder
-    mean_values = chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
+    chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class)]
+    mean_values= chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
     std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
-
+    # mean_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/mean_statistics/mean_class_4.npy")
+    # std_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/std_statistics/std_class_4.npy")
     # Normalize for non-class-4 samples
     exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
     X[exclude_class_4] = (X[exclude_class_4] - mean_values) / std_values
