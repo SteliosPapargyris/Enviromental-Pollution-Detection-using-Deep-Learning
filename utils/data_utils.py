@@ -121,7 +121,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     # std_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/std_statistics/std_class_4.npy")
     # Normalize for non-class-4 samples
     exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
-    X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (np.sqrt(std_values)**2 + 1e-2)
+    X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (np.sqrt(std_values)**2 + 1e-4)
 
     # # Min-Max normalization per row for all samples
     # row_min = X.min(axis=1)
