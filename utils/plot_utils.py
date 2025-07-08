@@ -52,7 +52,7 @@ def plot_normalized_train_mean_feature_per_class(df, class_column='match_Class',
     # Plot
     plt.figure(figsize=(12, 6))
     for class_label, row in mean_per_class.iterrows():
-        plt.plot(row.values, label=f'Class {int(class_label) +1}')
+        plt.plot(row.values, label=f'Class {int(class_label)}')
 
     plt.title(title)
     plt.xlabel('Peak Index (1–32)')
