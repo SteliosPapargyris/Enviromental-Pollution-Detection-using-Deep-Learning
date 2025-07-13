@@ -110,18 +110,46 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
 
     # Extract features and labels
     # X = df.drop(['Class', 'Chip'], axis=1)
-    X = df.drop(['Class', 'Temperature', 'Chip'], axis=1)
-    y = df['Class']
+    # X = df.drop(['Class', 'Temperature', 'Chip'], axis=1)
+    # y = df['Class']
 
-    # Get mean and std for class 4 normalization
-    chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class)]
-    mean_values= chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
-    std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
-    # mean_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/mean_statistics/mean_class_4.npy")
-    # std_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/std_statistics/std_class_4.npy")
-    # Normalize for non-class-4 samples
-    exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
-    # X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (std_values +10e-2)
+    # Setup
+    columns_to_normalize = [col for col in df.columns if col not in ['Class', 'Temperature', 'Chip']]
+    chip_column = 'Chip'
+    class_column = 'Class'
+    class_4_encoded = label_encoder.transform(['4'])[0]  # This is the class to exclude from normalization
+
+    # Normalize by chip (within test set), exclude class 4 from normalization
+    df_copy = df.copy()
+
+    for chip_value in df_copy[chip_column].unique():
+        chip_df = df_copy[df_copy[chip_column] == chip_value]
+
+        # Compute stats using all samples from this chip, including class 4
+        chip_mean = chip_df[columns_to_normalize].mean()
+        chip_std = chip_df[columns_to_normalize].std().replace(0, 1)
+
+        # Apply normalization only to rows that are NOT class 4
+        mask = (
+            (df_copy[chip_column] == chip_value) &
+            (df_copy[class_column] != class_4_encoded)
+        )
+        df_copy.loc[mask, columns_to_normalize] = (
+            df_copy.loc[mask, columns_to_normalize].subtract(chip_mean).div(chip_std)
+        )
+
+    X = df_copy.drop(['Class', 'Temperature', 'Chip'], axis=1)
+    y = df_copy['Class']
+
+    # # Get mean and std for class 4 normalization
+    # chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class)]
+    # mean_values= chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
+    # std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
+    # # mean_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/mean_statistics/mean_class_4.npy")
+    # # std_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/std_statistics/std_class_4.npy")
+    # # Normalize for non-class-4 samples
+    # exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
+    # X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (std_values)
 
     # # Min-Max normalization per row for all samples
     # row_min = X.min(axis=1)
