@@ -122,22 +122,39 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     # Normalize by chip (within test set), exclude class 4 from normalization
     df_copy = df.copy()
 
+    # # Standard Scaler
+    # for chip_value in df_copy[chip_column].unique():
+    #     chip_df = df_copy[df_copy[chip_column] == chip_value]
+
+    #     # Compute stats using all samples from this chip, including class 4
+    #     chip_mean = chip_df[columns_to_normalize].mean()
+    #     chip_std = chip_df[columns_to_normalize].std().replace(0, 1)
+
+    #     # Apply normalization only to rows that are NOT class 4
+    #     mask = (
+    #         (df_copy[chip_column] == chip_value) &
+    #         (df_copy[class_column] != class_4_encoded)
+    #     )
+    #     df_copy.loc[mask, columns_to_normalize] = (
+    #         df_copy.loc[mask, columns_to_normalize].subtract(chip_mean).div(chip_std)
+    #     )
+
+    # Min-Max Normalization
     for chip_value in df_copy[chip_column].unique():
         chip_df = df_copy[df_copy[chip_column] == chip_value]
 
-        # Compute stats using all samples from this chip, including class 4
-        chip_mean = chip_df[columns_to_normalize].mean()
-        chip_std = chip_df[columns_to_normalize].std().replace(0, 1)
-
+        # Compute min and max using all samples from this chip, including class 4
+        chip_min = chip_df[columns_to_normalize].min()
+        chip_max = chip_df[columns_to_normalize].max()
+        chip_range = (chip_max - chip_min).replace(0, 1)
         # Apply normalization only to rows that are NOT class 4
         mask = (
             (df_copy[chip_column] == chip_value) &
             (df_copy[class_column] != class_4_encoded)
         )
         df_copy.loc[mask, columns_to_normalize] = (
-            df_copy.loc[mask, columns_to_normalize].subtract(chip_mean).div(chip_std)
+            df_copy.loc[mask, columns_to_normalize].subtract(chip_min).div(chip_range)
         )
-
     X = df_copy.drop(['Class', 'Temperature', 'Chip'], axis=1)
     y = df_copy['Class']
 
