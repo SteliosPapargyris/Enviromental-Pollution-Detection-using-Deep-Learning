@@ -5,8 +5,10 @@ import torch.nn.functional as F
 class ConvDenoiser(nn.Module):
     def __init__(self):
         super(ConvDenoiser, self).__init__()
-        ## encoder layers ##
 
+        # TODO Linear instead of Convd
+        
+        ## encoder layers ##
         self.conv1 = nn.Conv1d(1, 32, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm1d(32)
         self.pool1 = nn.MaxPool1d(2)

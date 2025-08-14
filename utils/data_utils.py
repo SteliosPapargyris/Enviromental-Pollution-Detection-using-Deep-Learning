@@ -139,34 +139,34 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     #         df_copy.loc[mask, columns_to_normalize].subtract(chip_mean).div(chip_std)
     #     )
 
-    # Min-Max Normalization
-    for chip_value in df_copy[chip_column].unique():
-        chip_df = df_copy[df_copy[chip_column] == chip_value]
+    # # Min-Max Normalization
+    # for chip_value in df_copy[chip_column].unique():
+    #     chip_df = df_copy[df_copy[chip_column] == chip_value]
 
-        # Compute min and max using all samples from this chip, including class 4
-        chip_min = chip_df[columns_to_normalize].min()
-        chip_max = chip_df[columns_to_normalize].max()
-        chip_range = (chip_max - chip_min).replace(0, 1)
-        # Apply normalization only to rows that are NOT class 4
-        mask = (
-            (df_copy[chip_column] == chip_value) &
-            (df_copy[class_column] != class_4_encoded)
-        )
-        df_copy.loc[mask, columns_to_normalize] = (
-            df_copy.loc[mask, columns_to_normalize].subtract(chip_min).div(chip_range)
-        )
+    #     # Compute min and max using all samples from this chip, including class 4
+    #     chip_min = chip_df[columns_to_normalize].min()
+    #     chip_max = chip_df[columns_to_normalize].max()
+    #     chip_range = (chip_max - chip_min).replace(0, 1)
+    #     # Apply normalization only to rows that are NOT class 4
+    #     mask = (
+    #         (df_copy[chip_column] == chip_value) &
+    #         (df_copy[class_column] != class_4_encoded)
+    #     )
+    #     df_copy.loc[mask, columns_to_normalize] = (
+    #         df_copy.loc[mask, columns_to_normalize].subtract(chip_min).div(chip_range)
+    #     )
     X = df_copy.drop(['Class', 'Temperature', 'Chip'], axis=1)
     y = df_copy['Class']
 
-    # # Get mean and std for class 4 normalization
-    # chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class)]
-    # mean_values= chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
-    # std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
-    # # mean_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/mean_statistics/mean_class_4.npy")
-    # # std_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/std_statistics/std_class_4.npy")
-    # # Normalize for non-class-4 samples
-    # exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
-    # X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (std_values)
+    # Get mean and std for class 4 normalization
+    chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class -1)]
+    mean_values= chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
+    std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
+    # mean_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/mean_statistics/mean_class_4.npy")
+    # std_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/std_statistics/std_class_4.npy")
+    # Normalize for non-class-4 samples
+    exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
+    X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (std_values)
 
     # # Min-Max normalization per row for all samples
     # row_min = X.min(axis=1)
