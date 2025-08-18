@@ -19,14 +19,9 @@ pip install -r requirements.txt
 
 ## 🚀 Usage
 
-Run the main script:
+Run the autoencoder and classifier and test script:
 ```bash
-python main.py
-```
-Run tests:
-
-```bash
-python test.py
+python train_autoencoder.py && python train_classifier.py && python test.py
 ```
 
 ## 🛠 Project Structure
@@ -43,11 +38,25 @@ python test.py
 ## 📢 Release Notes
 
 ### 🚀 Upcoming Changes
-- Add Temperature as a feature to classifier (before feeding temp into classifier i should normalize this column (StandardScaler, z-score etc or whatever)
-- Add from Chip 5 to training (10%, then 20% etc until test accuracy is high)
-- Change unseen Chip from 5 to 1 then 2 then 3 then 4.
-- Change Chip 2 as a "base" Chip with Chip 1,3,4
-- .clone --> in latent space of encoder of z
+- Normalize by dividing with the max of every peak
+- Take **ideas** from other **papers** (for let's say autoencoder -> xeR^32 -> x anhkei R^32
+- Start with describing the dataset (ask for the paper)
+- Auto Encoder describe z latent space, we use it in the decoder (figure) mathematically and visually + Normalization in input (like callibration), based on class 4 tihs mathematical expression (mean and std of class 4 to other classes in the same chip)
+- After that just say that i have this classifier
+- In proposed Method i should be as abstract as possible. And then in a different chapter more detail to every
+- What is the proposed method -> encoder-decoder, after that Global Local Model (Feature Extraction)
+- I should compare "same" models with same features not a model that has a temperature feature with one that does not
+- Proposed Method -> auto encoder with 32 features --> % accuracy
+- CNN --> % accuracy
+- etc
+- Proposed Method -> auto encoder with 33 features --> % accuracy (bigger accuracy with temperature) not compare with cnn or global and local with 32 features
+- In a **table** i should compare those different methods (must be clear)
+- Class 4 Mean and subtract
+other (not class 4) classes
+with this mean of class 4
+100.0% 48.12% (It's a part of autoencoder implementation so it must be into thesis)
+- Normalization in plots not with numbers. Numbers only for our results
+
 - Write the thesis
 
 For future:
@@ -65,13 +74,23 @@ Drop encoder to 8 bits.
 
 ### ✅ Implemented
 
+🔹 v1.5 (May 2025)
+- Implemented project with 20 chips and 100 chips also
+- Added percentages of test chip in training and remove those samples of data from inference
+- .clone in latent space of encoder of z
+
+
+
+🔹 v1.4 (May 2025)
+- Added Temperature as a feature to classifier
+- Changed unseen chips and did all the combinations for train and test chips and of course the corresponding baseline Chips. Best results for Train Chips 1,2,3,4 and Test Chip 5 and baseline Chip 4
+- 
 🔹 v1.3 (April 2025)
 - 🛠 Added a **dense layer after Conv2** in the convolutional denoiser for improved feature extraction
 - Shuffle dataset (e.g chip 1, 3, 4 shuffled) and the target chip will be chip 2. Not necessary to do continual learning.
 
 🔹 v1.2 (March 2025)
 - 🏷️ Standardizing all chips with autoencoders to follow the structure of **Chip 1** (chosen as the reference chip)
-
 
 🔹 v1.1 (March 2025)
 - ⚡ Optimized deep learning model for faster inference
