@@ -1,11 +1,21 @@
 import torch
 from utils.config import *
 from utils.models import ConvDenoiser, Classifier
-from utils.data_utils import load_and_preprocess_data_classifier, tensor_dataset_classifier
+from utils.data_utils import load_and_preprocess_data_classifier, tensor_dataset_classifier, dataset_creation
 from utils.train_test_utils import train_classifier, evaluate_classifier
-from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses, plot_denoised_mean_feature_per_class_before_classifier
+from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses, plot_denoised_mean_feature_per_class_before_classifier, plot_normalized_train_mean_feature_per_class
 import torch.nn as nn
 import torch.optim as optim
+
+df = dataset_creation(num_chips, baseline_chip=baseline_chip)
+
+# Call the plot function
+plot_normalized_train_mean_feature_per_class(
+    df,
+    class_column='match_Class',
+    save_path="out/normalized_train_mean_feature_per_class.png",
+    title='Train Mean Peaks per Class after Normalization'
+)
 
 # Load the shuffled dataset for the current chip
 X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_classifier(file_path=f"{current_path}/shuffled_dataset/merged.csv")
