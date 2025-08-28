@@ -104,20 +104,20 @@ class LinearDenoiser(nn.Module):
             x = x.squeeze(1)  # Remove channel dimension -> (batch, length)
         
         ## encoder ##
-        x = F.relu(self.bn1(self.linear1(x)))
+        x = F.leaky_relu(self.bn1(self.linear1(x)))
         x = self.dropout1(x)
         
-        x = F.relu(self.bn2(self.linear2(x)))
+        x = F.leaky_relu(self.bn2(self.linear2(x)))
         x = self.dropout2(x)
         
         # Bottleneck
-        encoded = F.relu(self.bn3(self.linear3(x)))
+        encoded = F.leaky_relu(self.bn3(self.linear3(x)))
         
         ## decoder ##
-        x = F.relu(self.bn4(self.linear4(encoded)))
+        x = F.leaky_relu(self.bn4(self.linear4(encoded)))
         x = self.dropout3(x)
         
-        x = F.relu(self.bn5(self.linear5(x)))
+        x = F.leaky_relu(self.bn5(self.linear5(x)))
         x = self.dropout4(x)
         
         # Output layer (no activation for reconstruction)
@@ -154,9 +154,9 @@ class Classifier(nn.Module):
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, z):
-        z = self.pool1(F.relu(self.bn1(self.conv1(z))))
-        z = self.pool2(F.relu(self.bn2(self.conv2(z))))
-        z = self.pool3(F.relu(self.bn3(self.conv3(z))))
+        z = self.pool1(F.leaky_relu(self.bn1(self.conv1(z))))
+        z = self.pool2(F.leaky_relu(self.bn2(self.conv2(z))))
+        z = self.pool3(F.leaky_relu(self.bn3(self.conv3(z))))
 
         z = z.view(z.size(0), -1)  # Flatten for fully connected layer
         z = self.fc1(z)
