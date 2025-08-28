@@ -3,7 +3,7 @@ import torch.optim as optim
 from utils.data_utils import dataset_creation, load_and_preprocess_data_autoencoder, tensor_dataset_autoencoder
 from utils.train_test_utils import train_encoder_decoder, evaluate_encoder_decoder
 from utils.plot_utils import plot_train_and_val_losses, plot_normalized_train_mean_feature_per_class
-from utils.models import LinearDenoiser
+from utils.models import LinearDenoiser, ConvDenoiser
 from utils.config import *
 
 df = dataset_creation(num_chips, baseline_chip=baseline_chip)
@@ -22,7 +22,8 @@ X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preproc
 # Create data loaders for raw data
 train_loader, val_loader, test_loader = tensor_dataset_autoencoder(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)
 
-model = LinearDenoiser().to(device)
+# model = LinearDenoiser().to(device)
+model = ConvDenoiser().to(device)
 
 # Define loss function, optimizer, and scheduler
 criterion = nn.MSELoss()

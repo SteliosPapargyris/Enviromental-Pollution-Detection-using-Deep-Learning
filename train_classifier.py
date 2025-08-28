@@ -1,6 +1,6 @@
 import torch
 from utils.config import *
-from utils.models import LinearDenoiser, Classifier
+from utils.models import LinearDenoiser, ConvDenoiser, Classifier
 from utils.data_utils import load_and_preprocess_data_classifier, tensor_dataset_classifier
 from utils.train_test_utils import train_classifier, evaluate_classifier, evaluate_encoder_decoder_for_classifier
 from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses, plot_denoised_mean_feature_per_class_before_classifier
@@ -13,7 +13,8 @@ X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preproc
 # Create data loaders for raw data
 train_loader, val_loader, test_loader = tensor_dataset_classifier(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)
 
-model_autoencoder = LinearDenoiser().to(device)
+# model_autoencoder = LinearDenoiser().to(device)
+model_autoencoder = ConvDenoiser().to(device)
 model_autoencoder.load_state_dict(torch.load("pths/autoencoder_train.pth", map_location=device))
 model_autoencoder.eval()
 model_classifier = Classifier().to(device)

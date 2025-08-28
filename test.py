@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
-from sklearn.preprocessing import LabelEncoder
 from utils.data_utils import tensor_dataset_classifier, load_and_preprocess_test_data
 from utils.train_test_utils import evaluate_encoder_decoder_for_classifier, evaluate_classifier
 from utils.plot_utils import plot_conf_matrix, plot_normalized_test_mean_feature_per_class, plot_denoised_test_mean_feature_per_class
-from utils.models import LinearDenoiser, Classifier
+from utils.models import LinearDenoiser, ConvDenoiser, Classifier
 from utils.config import *
 
 # Load and preprocess test data
@@ -24,7 +23,8 @@ autoencoder_path = "pths/autoencoder_train.pth"
 classifier_path = "pths/classifier_train.pth"
 
 # Initialize LinearDenoiser model
-model_autoencoder = LinearDenoiser().to(device)
+# model_autoencoder = LinearDenoiser().to(device)
+model_autoencoder = ConvDenoiser().to(device)
 model_classifier = Classifier().to(device)
 
 # Set models to evaluation mode
@@ -40,7 +40,7 @@ criterion = nn.MSELoss()
 # Evaluate the model on the test set
 X_test_denoised, y_test = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=test_loader, device=device)
 test_dataset = torch.utils.data.TensorDataset(X_test_denoised, y_test)
-denoised_test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+denoised_test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
 plot_denoised_test_mean_feature_per_class(
     X_tensor=X_test_denoised,

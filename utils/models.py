@@ -2,64 +2,62 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-# class ConvDenoiser(nn.Module):
-#     def __init__(self):
-#         super(ConvDenoiser, self).__init__()
-
-#         # TODO Linear instead of Convd
+class ConvDenoiser(nn.Module):
+    def __init__(self):
+        super(ConvDenoiser, self).__init__()
         
-#         ## encoder layers ##
-#         self.conv1 = nn.Conv1d(1, 32, kernel_size=3, padding=1)
-#         self.bn1 = nn.BatchNorm1d(32)
-#         self.pool1 = nn.MaxPool1d(2)
-#          # Lout = [(Lin + 2 * padding - kernel_size)/stride + 1]  --> Lout = [(32 + 2*1 - 3)/1 + 1 --> 32
-#          # pooling -> 16
+        ## encoder layers ##
+        self.conv1 = nn.Conv1d(1, 32, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm1d(32)
+        self.pool1 = nn.MaxPool1d(2)
+         # Lout = [(Lin + 2 * padding - kernel_size)/stride + 1]  --> Lout = [(32 + 2*1 - 3)/1 + 1 --> 32
+         # pooling -> 16
 
-#         self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
-#         self.bn2 = nn.BatchNorm1d(64)
-#         self.pool2 = nn.MaxPool1d(2)
-#         # Lout = (16 + 2 - 3)/1 + 1 --> Lout = 16
-#         # pooling --> 8
+        self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.pool2 = nn.MaxPool1d(2)
+        # Lout = (16 + 2 - 3)/1 + 1 --> Lout = 16
+        # pooling --> 8
 
-#         # input length --> 32
-#         # After pool1: 16, After pool2: 8, 64 channels
-#         self.flattened_size = 64 * 8  # update based on input size
-#         self.fc = nn.Linear(self.flattened_size, self.flattened_size)  # you can change output size too
+        # input length --> 32
+        # After pool1: 16, After pool2: 8, 64 channels
+        self.flattened_size = 64 * 8  # update based on input size
+        self.fc = nn.Linear(self.flattened_size, self.flattened_size)  # you can change output size too
 
-#         ## decoder layers ##
-#         # Lout = (Lin - 1) * stride - 2 * padding + kernel_size + out_padding
-#         self.t_conv1 = nn.ConvTranspose1d(64, 64, kernel_size=2, stride=2)
-#         # Lout = (8 - 1) * 2 - 2 * 0 + 2 + 0 --> Lout= 16
-#         self.t_conv2 = nn.ConvTranspose1d(64, 32, kernel_size=2, stride=2, output_padding=1)  # Double the length
-#         # Lout = (16 - 1) * 2 - 2 * 0 + 2 + 0 --> Lout = 32
+        ## decoder layers ##
+        # Lout = (Lin - 1) * stride - 2 * padding + kernel_size + out_padding
+        self.t_conv1 = nn.ConvTranspose1d(64, 64, kernel_size=2, stride=2)
+        # Lout = (8 - 1) * 2 - 2 * 0 + 2 + 0 --> Lout= 16
+        self.t_conv2 = nn.ConvTranspose1d(64, 32, kernel_size=2, stride=2, output_padding=1)  # Double the length
+        # Lout = (16 - 1) * 2 - 2 * 0 + 2 + 0 --> Lout = 32
 
-#         self.conv_out = nn.Conv1d(32, 1, kernel_size=3, padding=1)
+        self.conv_out = nn.Conv1d(32, 1, kernel_size=3, padding=1)
 
 
-#     def forward(self, x):
-#         ## encode ##
-#         # add hidden layers with relu activation function
-#         # and maxpooling after
-#         z = self.pool1(F.relu(self.bn1(self.conv1(x))))
-#         z = self.pool2(F.relu(self.bn2(self.conv2(z))))
-#         z_latent = z.clone()
+    def forward(self, x):
+        ## encode ##
+        # add hidden layers with relu activation function
+        # and maxpooling after
+        z = self.pool1(F.leaky_relu(self.bn1(self.conv1(x))))
+        z = self.pool2(F.leaky_relu(self.bn2(self.conv2(z))))
+        z_latent = z.clone()
 
-#  # Flatten and pass through dense layer
-#         batch_size = z.size(0)
-#         z_flat = z.view(batch_size, -1)
-#         z_dense = F.relu(self.fc(z_flat))
+ # Flatten and pass through dense layer
+        batch_size = z.size(0)
+        z_flat = z.view(batch_size, -1)
+        z_dense = F.leaky_relu(self.fc(z_flat))
 
-#         # Unflatten before decoding
-#         z_unflat = z_dense.view(batch_size, 64, 8)
+        # Unflatten before decoding
+        z_unflat = z_dense.view(batch_size, 64, 8)
 
-#         ## decode ##
-#         # add transpose conv layers, with relu activation function
-#         x = F.relu(self.t_conv1(z_unflat))
-#         x = F.relu(self.t_conv2(x))
-#         # transpose again, output should have a sigmoid applied
-#         x = F.sigmoid(self.conv_out(x))
+        ## decode ##
+        # add transpose conv layers, with leaky relu activation function
+        x = F.leaky_relu(self.t_conv1(z_unflat))
+        x = F.leaky_relu(self.t_conv2(x))
+        # transpose again, output should have a sigmoid applied
+        x = F.sigmoid(self.conv_out(x))
 
-#         return x, z_latent
+        return x, z_latent
 
 class LinearDenoiser(nn.Module):
     def __init__(self, input_size=33):
@@ -110,6 +108,8 @@ class LinearDenoiser(nn.Module):
         x = F.leaky_relu(self.bn2(self.linear2(x)))
         x = self.dropout2(x)
         
+        z_latent = x.clone()
+
         # Bottleneck
         encoded = F.leaky_relu(self.bn3(self.linear3(x)))
         
@@ -126,7 +126,7 @@ class LinearDenoiser(nn.Module):
         # Add channel dimension back if needed to match original input format
         x = x.unsqueeze(1)  # (batch, length) -> (batch, 1, length)
         
-        return x
+        return x, z_latent
     
 class Classifier(nn.Module):
     def __init__(self, num_classes=4):
@@ -163,15 +163,3 @@ class Classifier(nn.Module):
         z = self.softmax(z)  # Apply softmax to get class probabilities
 
         return z
-
-
-    # def forward(self, x):
-    #     x = self.pool1(F.relu(self.bn1(self.conv1(x))))
-    #     x = self.pool2(F.relu(self.bn2(self.conv2(x))))
-    #     x = self.pool3(F.relu(self.bn3(self.conv3(x))))
-    #
-    #     x = x.view(x.size(0), -1)  # Flatten for fully connected layer
-    #     x = self.fc1(x)
-    #     x = self.softmax(x)  # Apply softmax to get class probabilities
-    #
-    #     return x
