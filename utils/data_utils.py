@@ -88,9 +88,6 @@ def load_and_preprocess_data_classifier(file_path, random_state=42):
 def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     df = pd.read_csv(file_path)
 
-    # columns_to_normalize = ['Temperature'] + [f'Peak {i}' for i in range(1, 33)]
-    columns_to_normalize = [f'Peak {i}' for i in range(1, 33)]
-
     plot_raw_test_mean_feature_per_class(
     df,
     class_column='Class',
@@ -108,16 +105,10 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     label_encoder = LabelEncoder()
     df['Class'] = label_encoder.fit_transform(df['Class'])
 
-    # Extract features and labels
-    # X = df.drop(['Class', 'Chip'], axis=1)
-    # X = df.drop(['Class', 'Temperature', 'Chip'], axis=1)
-    # y = df['Class']
-
     # Setup
-    columns_to_normalize = [col for col in df.columns if col not in ['Class', 'Temperature', 'Chip']]
+    columns_to_normalize = [col for col in df.columns if col not in ['Class', 'Chip']]
     chip_column = 'Chip'
     class_column = 'Class'
-    class_4_encoded = label_encoder.transform(['4'])[0]  # This is the class to exclude from normalization
 
     # Normalize by chip (within test set), exclude class 4 from normalization
     df_copy = df.copy()
@@ -155,7 +146,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     #     df_copy.loc[mask, columns_to_normalize] = (
     #         df_copy.loc[mask, columns_to_normalize].subtract(chip_min).div(chip_range)
     #     )
-    X = df_copy.drop(['Class', 'Temperature', 'Chip'], axis=1)
+    X = df_copy.drop(['Class', 'Chip'], axis=1)
     y = df_copy['Class']
 
     # Get mean and std for class 4 normalization
@@ -164,6 +155,7 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
     # mean_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/mean_statistics/mean_class_4.npy")
     # std_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/std_statistics/std_class_4.npy")
+    
     # Normalize for non-class-4 samples
     exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
     X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (std_values)
