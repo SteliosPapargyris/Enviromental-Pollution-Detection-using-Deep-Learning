@@ -49,7 +49,6 @@ plot_denoised_test_mean_feature_per_class(
     title='Denoised Test Mean Feature per Class'
 )
 
-
 # X_te= torch.as_tensor(X_test.to_numpy(dtype="float32")).unsqueeze(1)  # shape [280, 33], float32 for features
 # y_te = torch.as_tensor(y_test.to_numpy(dtype="int64"))    # shape [280],   int64 for labels
 # test_dataset = torch.utils.data.TensorDataset(X_te, y_te)

@@ -155,11 +155,28 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
     std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
     # mean_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/mean_statistics/mean_class_4.npy")
     # std_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/std_statistics/std_class_4.npy")
-    
     # Normalize for non-class-4 samples
-    exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
-    X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (std_values)
+    # exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
+    # X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (std_values)
 
+    # Normalize for non-class-4 samples (excluding Temperature column)
+    exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
+    columns_except_temp = [col for col in columns_to_normalize if col != 'Temperature']
+    if columns_except_temp:
+        temp_mean_values = chip_5_target_rows[columns_except_temp].mean(axis=0).to_numpy().reshape(1, -1)
+        temp_std_values = chip_5_target_rows[columns_except_temp].std(axis=0).to_numpy().reshape(1, -1)
+        X.loc[exclude_class_4, columns_except_temp] = (X.loc[exclude_class_4, columns_except_temp] - temp_mean_values) / temp_std_values
+
+    # Normalize temperature column for ALL classes (including class 4)
+    if 'Temperature' in X.columns:
+        temp_mean = chip_5_target_rows['Temperature'].mean()
+        temp_std = chip_5_target_rows['Temperature'].std()
+        X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std
+    # # Normalize temperature column for ALL classes (including class 4)
+    # if 'Temperature' in X.columns:
+    #     temp_mean = chip_5_target_rows['Temperature'].mean()
+    #     temp_std = chip_5_target_rows['Temperature'].std()
+    #     X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std
     # # Min-Max normalization per row for all samples
     # row_min = X.min(axis=1)
     # row_max = X.max(axis=1)

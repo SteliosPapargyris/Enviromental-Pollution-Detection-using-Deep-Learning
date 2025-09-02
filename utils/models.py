@@ -42,7 +42,7 @@ class ConvDenoiser(nn.Module):
         z = self.pool2(F.leaky_relu(self.bn2(self.conv2(z))))
         z_latent = z.clone()
 
- # Flatten and pass through dense layer
+        # Flatten and pass through dense layer
         batch_size = z.size(0)
         z_flat = z.view(batch_size, -1)
         z_dense = F.leaky_relu(self.fc(z_flat))
@@ -54,8 +54,9 @@ class ConvDenoiser(nn.Module):
         # add transpose conv layers, with leaky relu activation function
         x = F.leaky_relu(self.t_conv1(z_unflat))
         x = F.leaky_relu(self.t_conv2(x))
+
         # transpose again, output should have a sigmoid applied
-        x = F.sigmoid(self.conv_out(x))
+        x = self.conv_out(x)
 
         return x, z_latent
 
