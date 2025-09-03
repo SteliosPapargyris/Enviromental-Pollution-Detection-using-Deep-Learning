@@ -90,7 +90,7 @@ def evaluate_encoder_decoder(model_encoder_decoder, test_loader, device, criteri
             total_test_loss += loss.item()
 
     avg_test_loss = total_test_loss / len(test_loader)
-    print(f'Average Test Loss: {avg_test_loss:.6f}')
+    print(f'Final Test Loss: {avg_test_loss:.6f}')
     return avg_test_loss
 
 def evaluate_encoder_decoder_for_classifier(model_encoder_decoder, data_loader, device):

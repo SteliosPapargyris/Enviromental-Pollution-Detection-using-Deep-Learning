@@ -49,6 +49,9 @@ def plot_normalized_train_mean_feature_per_class(df, class_column='match_Class',
     # Compute mean for each class
     mean_per_class = df.groupby(class_column)[peak_cols].mean()
 
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
     # Plot
     plt.figure(figsize=(12, 6))
     for class_label, row in mean_per_class.iterrows():

@@ -3,61 +3,60 @@ import torch.nn.functional as F
 
 
 class ConvDenoiser(nn.Module):
-    def __init__(self):
+    def __init__(self, input_length=33):
         super(ConvDenoiser, self).__init__()
+        
+        self.input_length = input_length
         
         ## encoder layers ##
         self.conv1 = nn.Conv1d(1, 32, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm1d(32)
-        self.pool1 = nn.MaxPool1d(2)
-         # Lout = [(Lin + 2 * padding - kernel_size)/stride + 1]  --> Lout = [(32 + 2*1 - 3)/1 + 1 --> 32
-         # pooling -> 16
-
+        self.pool1 = nn.AdaptiveMaxPool1d(input_length // 2)  # 33 -> 16
+        
         self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm1d(64)
-        self.pool2 = nn.MaxPool1d(2)
-        # Lout = (16 + 2 - 3)/1 + 1 --> Lout = 16
-        # pooling --> 8
-
-        # input length --> 32
-        # After pool1: 16, After pool2: 8, 64 channels
-        self.flattened_size = 64 * 8  # update based on input size
-        self.fc = nn.Linear(self.flattened_size, self.flattened_size)  # you can change output size too
-
+        self.pool2 = nn.AdaptiveMaxPool1d(input_length // 4)  # 16 -> 8
+        
+        self.dropout = nn.Dropout(0.1)
+        
+        # More precise calculation
+        self.encoded_length = input_length // 4
+        self.flattened_size = 64 * self.encoded_length
+        self.fc = nn.Linear(self.flattened_size, self.flattened_size // 2)
+        self.fc_decode = nn.Linear(self.flattened_size // 2, self.flattened_size)
+        
         ## decoder layers ##
-        # Lout = (Lin - 1) * stride - 2 * padding + kernel_size + out_padding
-        self.t_conv1 = nn.ConvTranspose1d(64, 64, kernel_size=2, stride=2)
-        # Lout = (8 - 1) * 2 - 2 * 0 + 2 + 0 --> Lout= 16
-        self.t_conv2 = nn.ConvTranspose1d(64, 32, kernel_size=2, stride=2, output_padding=1)  # Double the length
-        # Lout = (16 - 1) * 2 - 2 * 0 + 2 + 0 --> Lout = 32
-
-        self.conv_out = nn.Conv1d(32, 1, kernel_size=3, padding=1)
-
+        self.t_conv1 = nn.ConvTranspose1d(64, 32, kernel_size=2, stride=2)
+        self.t_conv2 = nn.ConvTranspose1d(32, 16, kernel_size=2, stride=2)
+        self.conv_out = nn.Conv1d(16, 1, kernel_size=3, padding=1)
 
     def forward(self, x):
+        original_length = x.size(-1)
+        
         ## encode ##
-        # add hidden layers with relu activation function
-        # and maxpooling after
-        z = self.pool1(F.leaky_relu(self.bn1(self.conv1(x))))
-        z = self.pool2(F.leaky_relu(self.bn2(self.conv2(z))))
-        z_latent = z.clone()
-
-        # Flatten and pass through dense layer
+        z = self.pool1(F.elu(self.bn1(self.conv1(x))))  # ELU for better negative handling
+        z = self.pool2(F.elu(self.bn2(self.conv2(z))))
+        z = self.dropout(z)
+        
+        # Bottleneck
         batch_size = z.size(0)
         z_flat = z.view(batch_size, -1)
-        z_dense = F.leaky_relu(self.fc(z_flat))
-
-        # Unflatten before decoding
-        z_unflat = z_dense.view(batch_size, 64, 8)
-
+        z_compressed = F.elu(self.fc(z_flat))
+        z_latent = z_compressed.clone()
+        
+        # Decode
+        z_expanded = F.elu(self.fc_decode(z_compressed))
+        z_unflat = z_expanded.view(batch_size, 64, self.encoded_length)
+        
         ## decode ##
-        # add transpose conv layers, with leaky relu activation function
-        x = F.leaky_relu(self.t_conv1(z_unflat))
-        x = F.leaky_relu(self.t_conv2(x))
-
-        # transpose again, output should have a sigmoid applied
-        x = self.conv_out(x)
-
+        x = F.elu(self.t_conv1(z_unflat))
+        x = F.elu(self.t_conv2(x))
+        x = self.conv_out(x)  # No activation for reconstruction
+        
+        # Use adaptive interpolation to match exact input size
+        if x.size(-1) != original_length:
+            x = F.interpolate(x, size=original_length, mode='linear', align_corners=False)
+        
         return x, z_latent
 
 class LinearDenoiser(nn.Module):
@@ -67,22 +66,19 @@ class LinearDenoiser(nn.Module):
         self.input_size = input_size
         
         ## encoder layers ##
-        # First layer: input_size -> smaller representation
-        self.linear1 = nn.Linear(33, 32)
+        self.linear1 = nn.Linear(input_size, 32)
         self.bn1 = nn.BatchNorm1d(32)
         self.dropout1 = nn.Dropout(0.2)
         
-        # Second layer: further compression
         self.linear2 = nn.Linear(32, 64)
         self.bn2 = nn.BatchNorm1d(64)
         self.dropout2 = nn.Dropout(0.2)
         
-        # Bottleneck layer: most compressed representation
+        # Bottleneck layer
         self.linear3 = nn.Linear(64, 32)
         self.bn3 = nn.BatchNorm1d(32)
         
         ## decoder layers ##
-        # Expand back to original dimensions
         self.linear4 = nn.Linear(32, 64)
         self.bn4 = nn.BatchNorm1d(64)
         self.dropout3 = nn.Dropout(0.2)
@@ -91,76 +87,72 @@ class LinearDenoiser(nn.Module):
         self.bn5 = nn.BatchNorm1d(128)
         self.dropout4 = nn.Dropout(0.2)
         
-        # Output layer: back to original input size
         self.linear_out = nn.Linear(128, input_size)
         
     def forward(self, x):
-        # x shape: (batch_size, 1, sequence_length) for 1D conv input
-        # We need to reshape for linear layers
-        
-        # Remove channel dimension and flatten if needed
-        if len(x.shape) == 3:  # (batch, channels, length)
-            x = x.squeeze(1)  # Remove channel dimension -> (batch, length)
+        if len(x.shape) == 3:
+            x = x.squeeze(1)
         
         ## encoder ##
-        x = F.leaky_relu(self.bn1(self.linear1(x)))
+        x = F.gelu(self.bn1(self.linear1(x)))  # GELU works well with normalized data
         x = self.dropout1(x)
         
-        x = F.leaky_relu(self.bn2(self.linear2(x)))
+        x = F.gelu(self.bn2(self.linear2(x)))
         x = self.dropout2(x)
         
         z_latent = x.clone()
 
         # Bottleneck
-        encoded = F.leaky_relu(self.bn3(self.linear3(x)))
+        encoded = F.gelu(self.bn3(self.linear3(x)))
         
         ## decoder ##
-        x = F.leaky_relu(self.bn4(self.linear4(encoded)))
+        x = F.gelu(self.bn4(self.linear4(encoded)))
         x = self.dropout3(x)
         
-        x = F.leaky_relu(self.bn5(self.linear5(x)))
+        x = F.gelu(self.bn5(self.linear5(x)))
         x = self.dropout4(x)
         
         # Output layer (no activation for reconstruction)
         x = self.linear_out(x)
-        
-        # Add channel dimension back if needed to match original input format
-        x = x.unsqueeze(1)  # (batch, length) -> (batch, 1, length)
+        x = x.unsqueeze(1)
         
         return x, z_latent
     
 class Classifier(nn.Module):
-    def __init__(self, num_classes=4):
+    def __init__(self, input_length=33, num_classes=4):
         super(Classifier, self).__init__()
+        
+        # Use adaptive pooling for cleaner size handling
         self.conv1 = nn.Conv1d(1, 32, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm1d(32)
-        self.pool1 = nn.MaxPool1d(2)
-         # Lout = [(Lin + 2 * padding - kernel_size)/stride + 1]  --> Lout = [(128 + 2*1 - 3)/1 + 1 --> 128
-         # pooling -> 64
-
+        self.pool1 = nn.AdaptiveMaxPool1d(input_length // 2)
+        
         self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm1d(64)
-        self.pool2 = nn.MaxPool1d(2)
-        # Lout = 64
-        # pooling --> 32
-
-        self.conv3 = nn.Conv1d(64, 32, kernel_size=3, padding=1)
-        self.bn3 = nn.BatchNorm1d(32)
-        self.pool3 = nn.MaxPool1d(2)
-        # Lout = 32
-        # pooling --> 16
-
-        # Fully connected layer for classification
-        self.fc1 = nn.Linear(32*4, num_classes) # input size --> 32
-        self.softmax = nn.Softmax(dim=1)
+        self.pool2 = nn.AdaptiveMaxPool1d(input_length // 4)
+        
+        self.conv3 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm1d(128)
+        self.pool3 = nn.AdaptiveMaxPool1d(input_length // 8)
+        
+        # Global average pooling to handle any input size
+        self.global_pool = nn.AdaptiveAvgPool1d(1)
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(128, 64)
+        self.dropout = nn.Dropout(0.3)
+        self.fc2 = nn.Linear(64, num_classes)
 
     def forward(self, z):
-        z = self.pool1(F.leaky_relu(self.bn1(self.conv1(z))))
-        z = self.pool2(F.leaky_relu(self.bn2(self.conv2(z))))
-        z = self.pool3(F.leaky_relu(self.bn3(self.conv3(z))))
-
-        z = z.view(z.size(0), -1)  # Flatten for fully connected layer
-        z = self.fc1(z)
-        z = self.softmax(z)  # Apply softmax to get class probabilities
+        z = self.pool1(F.elu(self.bn1(self.conv1(z))))  # ELU for conv layers
+        z = self.pool2(F.elu(self.bn2(self.conv2(z))))
+        z = self.pool3(F.elu(self.bn3(self.conv3(z))))
+        
+        z = self.global_pool(z)  # Global pooling to size [batch, 128, 1]
+        z = z.view(z.size(0), -1)  # Flatten to [batch, 128]
+        
+        z = F.gelu(self.fc1(z))  # GELU for FC layers
+        z = self.dropout(z)
+        z = self.fc2(z)  # No activation - CrossEntropyLoss expects logits
 
         return z

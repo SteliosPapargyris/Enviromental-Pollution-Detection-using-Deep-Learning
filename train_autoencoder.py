@@ -22,8 +22,8 @@ X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preproc
 # Create data loaders for raw data
 train_loader, val_loader, test_loader = tensor_dataset_autoencoder(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)
 
-# model = LinearDenoiser().to(device)
-model = ConvDenoiser().to(device)
+model = LinearDenoiser(input_size=33).to(device)
+# model = ConvDenoiser(input_length=33).to(device)
 
 # Define loss function, optimizer, and scheduler
 criterion = nn.MSELoss()
