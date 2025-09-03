@@ -23,9 +23,9 @@ autoencoder_path = "pths/autoencoder_train.pth"
 classifier_path = "pths/classifier_train.pth"
 
 # Initialize LinearDenoiser model
-# model_autoencoder = LinearDenoiser().to(device)
-model_autoencoder = ConvDenoiser().to(device)
-model_classifier = Classifier().to(device)
+model_autoencoder = LinearDenoiser(input_size=33).to(device)
+# model_autoencoder = ConvDenoiser(input_length=33).to(device)
+model_classifier = Classifier(input_length=33, num_classes=4).to(device)
 
 # Set models to evaluation mode
 model_autoencoder.eval()

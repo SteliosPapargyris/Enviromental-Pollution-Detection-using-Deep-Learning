@@ -13,12 +13,12 @@ X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preproc
 # Create data loaders for raw data
 train_loader, val_loader, test_loader = tensor_dataset_classifier(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)
 
-# model_autoencoder = LinearDenoiser().to(device)
-model_autoencoder = ConvDenoiser().to(device)
+model_autoencoder = LinearDenoiser(input_size=33).to(device)
+# model_autoencoder = ConvDenoiser().to(device)
 model_autoencoder.load_state_dict(torch.load("pths/autoencoder_train.pth", map_location=device))
 model_autoencoder.eval()
 
-model_classifier = Classifier().to(device)
+model_classifier = Classifier(input_length=33, num_classes=4).to(device)
 
 # X_tr = torch.as_tensor(X_train.to_numpy(dtype="float32")).unsqueeze(1)  # shape [1120, 33], float32 for features
 # y_tr = torch.as_tensor(y_train.to_numpy(dtype="int64"))    # shape [1120],   int64 for labels (e.g., for CrossEntropyLoss)
