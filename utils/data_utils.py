@@ -85,202 +85,181 @@ def load_and_preprocess_data_classifier(file_path, random_state=42):
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.222, random_state=random_state)
     return (X_train, y_train, X_val, y_val, X_test, y_test,label_encoder)
 
-def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42):
+def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42, 
+                                stats_source='compute', stats_path=None):
+    """
+    Load and preprocess test data with normalization based on target class statistics.
+    
+    Args:
+        file_path (str): Path to the test CSV file
+        fraction (float): Fraction of data to use (default: 1.0)
+        random_seed (int): Random seed for reproducibility
+        stats_source (str): 'compute' to calculate stats, 'json' to load from file
+        stats_path (str): Path to JSON stats file (required if stats_source='json')
+        
+    Returns:
+        tuple: (X, y, label_encoder) - features, labels, and label encoder
+    """
+    import json
+    import numpy as np
+    
+    # Load and visualize raw data
     df = pd.read_csv(file_path)
-
+    
     plot_raw_test_mean_feature_per_class(
-    df,
-    class_column='Class',
-    save_path='out/raw_test_mean_feature_per_class.png',
-    title='Raw Test Mean Feature per Class'
-)
-    # Shuffle dataset
-    df = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
-
-    df_copy = df.copy()
-    # Take only a fraction of the dataset
-    df = df.iloc[:int(len(df) * fraction)]
-
-    # Encode 'Class' labels
+        df,
+        class_column='Class',
+        save_path='out/raw_test_mean_feature_per_class.png',
+        title='Raw Test Mean Feature per Class'
+    )
+    
+    # Shuffle and sample data
+    df = df.sample(frac=fraction, random_state=random_seed).reset_index(drop=True)
+    
+    # Encode class labels
     label_encoder = LabelEncoder()
     df['Class'] = label_encoder.fit_transform(df['Class'])
-
-    # Setup
-    columns_to_normalize = [col for col in df.columns if col not in ['Class', 'Chip']]
-    chip_column = 'Chip'
-    class_column = 'Class'
-
-    # Normalize by chip (within test set), exclude class 4 from normalization
-    df_copy = df.copy()
-
-    # # Standard Scaler
-    # for chip_value in df_copy[chip_column].unique():
-    #     chip_df = df_copy[df_copy[chip_column] == chip_value]
-
-    #     # Compute stats using all samples from this chip, including class 4
-    #     chip_mean = chip_df[columns_to_normalize].mean()
-    #     chip_std = chip_df[columns_to_normalize].std().replace(0, 1)
-
-    #     # Apply normalization only to rows that are NOT class 4
-    #     mask = (
-    #         (df_copy[chip_column] == chip_value) &
-    #         (df_copy[class_column] != class_4_encoded)
-    #     )
-    #     df_copy.loc[mask, columns_to_normalize] = (
-    #         df_copy.loc[mask, columns_to_normalize].subtract(chip_mean).div(chip_std)
-    #     )
-
-    # # Min-Max Normalization
-    # for chip_value in df_copy[chip_column].unique():
-    #     chip_df = df_copy[df_copy[chip_column] == chip_value]
-
-    #     # Compute min and max using all samples from this chip, including class 4
-    #     chip_min = chip_df[columns_to_normalize].min()
-    #     chip_max = chip_df[columns_to_normalize].max()
-    #     chip_range = (chip_max - chip_min).replace(0, 1)
-    #     # Apply normalization only to rows that are NOT class 4
-    #     mask = (
-    #         (df_copy[chip_column] == chip_value) &
-    #         (df_copy[class_column] != class_4_encoded)
-    #     )
-    #     df_copy.loc[mask, columns_to_normalize] = (
-    #         df_copy.loc[mask, columns_to_normalize].subtract(chip_min).div(chip_range)
-    #     )
-    X = df_copy.drop(['Class', 'Chip'], axis=1)
-    y = df_copy['Class']
-
-    # Get mean and std for class 4 normalization
-    chip_5_target_rows = df_copy[(df_copy[chip_column] == chip_exclude) & (df_copy[class_column] == target_class -1)]
-    mean_values= chip_5_target_rows[columns_to_normalize].mean(axis=0).to_numpy().reshape(1, -1)
-    std_values = chip_5_target_rows[columns_to_normalize].std(axis=0).to_numpy().reshape(1, -1)
-    # mean_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/mean_statistics/mean_class_4.npy")
-    # std_values = np.load("/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_4_of_every_chip/class_4_mean_and_std/fts_mzi_dataset/std_statistics/std_class_4.npy")
-    # Normalize for non-class-4 samples
-    # exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
-    # X[exclude_class_4] = (X[exclude_class_4] - mean_values) / (std_values)
-
-    # Normalize for non-class-4 samples (excluding Temperature column)
-    exclude_class_4 = (df['Class'] != label_encoder.transform(['4'])[0])
-    columns_except_temp = [col for col in columns_to_normalize if col != 'Temperature']
-    if columns_except_temp:
-        temp_mean_values = chip_5_target_rows[columns_except_temp].mean(axis=0).to_numpy().reshape(1, -1)
-        temp_std_values = chip_5_target_rows[columns_except_temp].std(axis=0).to_numpy().reshape(1, -1)
-        X.loc[exclude_class_4, columns_except_temp] = (X.loc[exclude_class_4, columns_except_temp] - temp_mean_values) / temp_std_values
-
-    # Normalize temperature column for ALL classes (including class 4)
-    if 'Temperature' in X.columns:
-        temp_mean = chip_5_target_rows['Temperature'].mean()
-        temp_std = chip_5_target_rows['Temperature'].std()
-        X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std
-    # # Normalize temperature column for ALL classes (including class 4)
-    # if 'Temperature' in X.columns:
-    #     temp_mean = chip_5_target_rows['Temperature'].mean()
-    #     temp_std = chip_5_target_rows['Temperature'].std()
-    #     X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std
-    # # Min-Max normalization per row for all samples
-    # row_min = X.min(axis=1)
-    # row_max = X.max(axis=1)
-    # denominator = (row_max - row_min).replace(0, 1)  # Avoid divide-by-zero
-
-    # X_normalized = (X.subtract(row_min, axis=0)
-    #             .div(denominator, axis=0))
     
-    # # Min-Max normalization per row for samples with Class 4 excluded
-    # # Identify Class 4 (to exclude from normalization)
-    # class_4_encoded = label_encoder.transform(['4'])[0]
-    # mask_not_class4 = (df['Class'] != class_4_encoded)
-
-    # # Min-Max normalization per row for samples not in Class 4
-    # row_min = X[mask_not_class4].min(axis=1)
-    # row_max = X[mask_not_class4].max(axis=1)
-    # denominator = (row_max - row_min).replace(0, 1)
-
-    # X.loc[mask_not_class4] = (
-    #     X.loc[mask_not_class4].subtract(row_min, axis=0)
-    #                           .div(denominator, axis=0)
-    # )
-
-    # # --- Min-Max Normalization ---
-    # col_stats_path = f'/Users/steliospapargyris/Documents/MyProjects/data_thesis/per_peak_minmax_excl_chip_class{target_class}/fts_mzi_dataset/{chip_exclude}chips_20percent_noise/col_minmax_stats_excl_chip{chip_exclude}_class{target_class}.csv'
-    # stats_df = pd.read_csv(col_stats_path, index_col=0)
-
-    # # Step 1: Add a feature index (assuming order matters and matches X's columns)
-    # stats_df['feature_idx'] = stats_df.groupby('chip').cumcount()
-    # stats_df = stats_df.reset_index() 
-
-    # # Step 2: Pivot so each row is one feature, each column is a chip's value
-    # min_df = stats_df.pivot(index='feature_idx', columns='chip', values='min')
-    # max_df = stats_df.pivot(index='feature_idx', columns='chip', values='max')
-
-    # # Step 3: Compute the average across chips (i.e., across columns)
-    # avg_min = min_df.mean(axis=1)
-    # avg_max = max_df.mean(axis=1)
-
-    # # Prevent divide-by-zero by replacing 0s in the denominator
-    # avg_range = (avg_max - avg_min).replace(0, 1)
-
-    # # Step 4: Mask for class ≠ 4 (inference-time known labels)
-    # class_mask = y != 3
-
-    # # # --- Z-score Normalization ---
-    # stats_df = pd.read_csv(col_stats_path, index_col=0)
+    # Define columns for processing
+    feature_columns = [col for col in df.columns if col not in ['Class', 'Chip']]
+    peak_columns = [col for col in feature_columns if col != 'Temperature']
     
-    # # Step 1: Add a feature index (assuming order matters and matches X's columns)
-    # stats_df['feature_idx'] = stats_df.groupby('chip').cumcount()
-    # stats_df = stats_df.reset_index() 
-
-    # # Step 2: Pivot so each row is one feature, each column is a chip's value
-    # mean_df = stats_df.pivot(index='feature_idx', columns='chip', values='mean')
-    # std_df = stats_df.pivot(index='feature_idx', columns='chip', values='std')
-
-    # # Step 3: Compute the average across chips (i.e., across columns)
-    # avg_mean = mean_df.mean(axis=1)
-    # avg_std = std_df.replace(0, 1).mean(axis=1)
-
-    # # avg_mean = mean_df.iloc[0:33, 0]
-    # # avg_std = std_df.iloc[0:33, 0]
-
-    # # Step 4: Mask for class ≠ 4 (inference-time known labels)
-    # class_mask = y != 3
-
-    # # Step 5: Apply normalization only to non-class-4 rows
-    # X_normalized = X.copy()
-    # X_normalized.loc[class_mask] = (
-    #     X.loc[class_mask].subtract(avg_mean.values, axis=1).div(avg_std.values, axis=1)
-    # )
-
-    # KLEPSIMO --> FROM THE SAME CHIP
-
-    # chip_ids = df['Chip']
-
-    # # Step 1: Create a copy for normalized data
-    # X_normalized = X.copy()
-
-    # # Step 2: Identify non-Class-4 samples
-    # class_mask = y != 3
-
-    # # Step 3: Normalize each sample using the mean and std of samples from the same chip
-    # for chip in chip_ids.unique():
-    #     # Get mask for samples of this chip and non-Class-4
-    #     chip_mask = (chip_ids == chip) & class_mask
-
-    #     # Compute mean and std from these rows
-    #     chip_X = X.loc[chip_mask]
-    #     chip_mean = chip_X.mean()
-    #     chip_std = chip_X.std().replace(0, 1)  # Avoid division by zero
-
-    #     # Apply normalization
-    #     X_normalized.loc[chip_mask] = (chip_X - chip_mean) / chip_std
+    # Separate features and labels
+    X = df[feature_columns].copy()
+    y = df['Class'].copy()
+    
+    target_class_encoded = target_class - 1  # Adjust for 0-based indexing
+    
+    # Get normalization statistics based on chosen method
+    if stats_source == 'json':
+        if stats_path is None:
+            raise ValueError("stats_path must be provided when stats_source='json'")
         
-    #  # --- Robust Normalization: (x - median) / IQR ---
-    # row_median = X.median(axis=1)
-    # row_q75 = X.quantile(0.75, axis=1)
-    # row_q25 = X.quantile(0.25, axis=1)
-    # row_iqr = (row_q75 - row_q25).replace(0, 1)  # Avoid divide-by-zero
-
-    # X_robust = X.subtract(row_median, axis=0).div(row_iqr, axis=0)
-
+        # Load statistics from JSON
+        with open(stats_path, 'r') as f:
+            stats = json.load(f)
+        
+        peak_mean = np.array(stats['mean'])
+        peak_std = np.array(stats['std'])
+        
+        # Handle temperature stats - you may need to adjust this based on your JSON structure
+        if 'Temperature' in feature_columns:
+            # Option 1: Calculate temperature stats (if not in JSON)
+            normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+            normalization_data = df[normalization_mask]
+            
+            if normalization_data.empty:
+                raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+            
+            temp_mean = normalization_data['Temperature'].mean()
+            temp_std = normalization_data['Temperature'].std()
+            
+            # Option 2: Load from JSON if available (uncomment if you save temp stats)
+            # temp_mean = stats.get('temp_mean', temp_mean)
+            # temp_std = stats.get('temp_std', temp_std)
+        
+        print(f"Loaded normalization statistics from: {stats_path}")
+        
+    elif stats_source == 'compute':
+        # Calculate normalization statistics from data
+        normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+        normalization_data = df[normalization_mask]
+        
+        if normalization_data.empty:
+            raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+        
+        peak_mean = normalization_data[peak_columns].mean().values
+        peak_std = normalization_data[peak_columns].std().values
+        temp_mean = normalization_data['Temperature'].mean()
+        temp_std = normalization_data['Temperature'].std()
+        
+        print("Computed normalization statistics from test data")
+        
+    else:
+        raise ValueError("stats_source must be either 'compute' or 'json'")
+    
+    # Apply normalization
+    _normalize_features(X, y, target_class_encoded, peak_columns, 
+                       peak_mean, peak_std, temp_mean, temp_std)
+    
     return X, y, label_encoder
+
+
+def _normalize_features(X, y, target_class_encoded, peak_columns, 
+                       peak_mean, peak_std, temp_mean, temp_std):
+    """
+    Helper function to apply normalization to features.
+    
+    Args:
+        X (pd.DataFrame): Feature matrix to normalize
+        y (pd.Series): Labels
+        target_class_encoded (int): Encoded target class value
+        peak_columns (list): List of peak column names
+        peak_mean, peak_std (np.array): Mean and std for peak normalization
+        temp_mean, temp_std (float): Mean and std for temperature normalization
+    """
+    # Normalize peak features for non-target classes only
+    non_target_mask = (y != target_class_encoded)
+    
+    if peak_columns and non_target_mask.sum() > 0:
+        # Avoid division by zero
+        peak_std_safe = np.where(peak_std == 0, 1, peak_std)
+        X.loc[non_target_mask, peak_columns] = (
+            X.loc[non_target_mask, peak_columns] - peak_mean
+        ) / peak_std_safe
+    
+    # Normalize temperature for ALL classes
+    if 'Temperature' in X.columns:
+        temp_std_safe = temp_std if temp_std != 0 else 1
+        X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std_safe
+
+
+def get_normalization_statistics(df, chip_id, class_id, feature_columns):
+    """
+    Extract normalization statistics from specific chip and class.
+    
+    Args:
+        df (pd.DataFrame): Input dataframe
+        chip_id (int): Chip identifier
+        class_id (int): Class identifier
+        feature_columns (list): Columns to calculate statistics for
+        
+    Returns:
+        tuple: (mean_values, std_values) as numpy arrays
+    """
+    subset = df[(df['Chip'] == chip_id) & (df['Class'] == class_id)]
+    
+    if subset.empty:
+        raise ValueError(f"No data found for chip {chip_id}, class {class_id}")
+    
+    mean_values = subset[feature_columns].mean().values
+    std_values = subset[feature_columns].std().values
+    
+    return mean_values, std_values
+
+
+def validate_normalization_data(df, required_columns):
+    """
+    Validate that the dataframe contains required columns and data.
+    
+    Args:
+        df (pd.DataFrame): Input dataframe
+        required_columns (list): List of required column names
+        
+    Raises:
+        ValueError: If validation fails
+    """
+    missing_columns = set(required_columns) - set(df.columns)
+    if missing_columns:
+        raise ValueError(f"Missing required columns: {missing_columns}")
+    
+    if df.empty:
+        raise ValueError("Input dataframe is empty")
+    
+    # Check for sufficient data per class
+    class_counts = df['Class'].value_counts()
+    if class_counts.min() < 5:  # Arbitrary threshold
+        print(f"Warning: Some classes have very few samples: {class_counts.to_dict()}")
 
 def tensor_dataset_autoencoder(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None):
     train_loader, val_loader, test_loader = None, None, None
