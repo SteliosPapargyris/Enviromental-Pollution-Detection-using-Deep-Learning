@@ -8,7 +8,7 @@ from utils.config import *
 
 # Load and preprocess test data
 # stats_source = "compute" or "json"
-X_test, y_test, label_encoder = load_and_preprocess_test_data(file_path=test_file_path, fraction=1, stats_source="compute", stats_path=stats_path)
+X_test, y_test, label_encoder = load_and_preprocess_test_data(file_path=test_file_path, fraction=1, stats_source="json", stats_path=stats_path)
 
 plot_normalized_test_mean_feature_per_class(
     X_df=X_test,
