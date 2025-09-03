@@ -5,7 +5,7 @@ import pandas as pd
 from utils.config import *
 
 
-def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name):
+def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name, early_stopping_patience):
     early_stopping_counter = 0
     model_encoder_decoder.to(device)
     best_val_loss = float('inf')
@@ -64,8 +64,8 @@ def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion
             print(f'No improvement in validation loss for {early_stopping_counter} consecutive epochs.')
 
         # Early stopping condition
-        if early_stopping_counter >= early_stopping_max_number:
-            print('Early stopping triggered after 6 epochs with no improvement in validation loss.')
+        if early_stopping_counter >= early_stopping_patience:
+            print(f'Early stopping triggered after {early_stopping_patience} epochs with no improvement in validation loss.')
             model_encoder_decoder.load_state_dict(torch.load(f'pths/{model_encoder_decoder_name}.pth'))
             print('Model restored to best state based on validation loss.')
             break
@@ -113,7 +113,7 @@ def evaluate_encoder_decoder_for_classifier(model_encoder_decoder, data_loader, 
     all_labels = torch.cat(all_labels, dim=0)
     return denoised_data, all_labels
 
-def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_classifier, device, model_classifier_name):
+def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_classifier, device, model_classifier_name, early_stopping_patience):
     early_stopping_counter = 0
     model_classifier.to(device)
     best_val_loss = float('inf')
@@ -168,8 +168,8 @@ def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, sch
 
         # Early stopping condition
         # TODO early_stopping patience to config.py
-        if early_stopping_counter >= early_stopping_max_number:
-            print('Early stopping triggered after 6 epochs with no improvement in validation loss.')
+        if early_stopping_counter >= early_stopping_patience:
+            print(f'Early stopping triggered after {early_stopping_patience} epochs with no improvement in validation loss.')
             model_classifier.load_state_dict(torch.load(f'pths/{model_classifier_name}.pth'))
             print('Model restored to best state based on validation loss.')
             break

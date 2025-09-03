@@ -30,7 +30,7 @@ model_classifier = Classifier(input_length=33, num_classes=4).to(device)
 # Define loss function, optimizer, and scheduler
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model_classifier.parameters(), lr=learning_rate)
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=patience, verbose=True)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=classifier_patience, verbose=True)
 
 X_train_denoised, y_train = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=train_loader, device=device)
 X_val_denoised, y_val = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=val_loader, device=device)
@@ -72,6 +72,7 @@ model_classifier, training_losses, validation_losses = train_classifier(
     model_classifier=model_classifier,
     device=device,
     model_classifier_name='classifier_train',
+    early_stopping_patience=classifier_early_stopping
 )
 
 # Plot training and validation losses

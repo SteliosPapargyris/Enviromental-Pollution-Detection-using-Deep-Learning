@@ -6,7 +6,15 @@ import numpy as np
 # Hyperparameters
 seed = 42
 batch_size = 32
-patience = 3
+
+# Recommended settings for autoencoder
+autoencoder_patience = 7          # Learning rate patience
+autoencoder_early_stopping = 15   # Early stopping patience
+
+# For classifier (can keep more aggressive)
+classifier_patience = 3
+classifier_early_stopping = 6
+
 early_stopping_max_number = 6
 learning_rate = 1e-3
 num_epochs = 500

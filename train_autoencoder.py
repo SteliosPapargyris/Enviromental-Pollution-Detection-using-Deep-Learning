@@ -28,7 +28,7 @@ model = LinearDenoiser(input_size=33).to(device)
 # Define loss function, optimizer, and scheduler
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=patience, verbose=True)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=autoencoder_patience, verbose=True)
 
 # Train the model on the current chip
 model_denoiser, training_losses, validation_losses = train_encoder_decoder(
@@ -40,7 +40,8 @@ model_denoiser, training_losses, validation_losses = train_encoder_decoder(
     scheduler=scheduler,
     model_encoder_decoder=model,
     device=device,
-    model_encoder_decoder_name='autoencoder_train')
+    model_encoder_decoder_name='autoencoder_train',
+    early_stopping_patience=autoencoder_early_stopping)
 
 # Plot training and validation losses
 plot_train_and_val_losses(training_losses, validation_losses, 'autoencoder_train')
