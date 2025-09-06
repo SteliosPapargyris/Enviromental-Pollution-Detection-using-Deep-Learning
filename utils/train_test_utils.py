@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, precision_score, recall_score, f1_score
 import pandas as pd
 from utils.config import *
-
+import os 
 
 def train_encoder_decoder(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_encoder_decoder, device, model_encoder_decoder_name, early_stopping_patience):
     early_stopping_counter = 0
@@ -215,6 +215,9 @@ def evaluate_classifier(model_classifier, test_loader, device, label_encoder, mo
     )
     print(class_report)
 
+    # Create directories if they don't exist
+    os.makedirs('out/classification_reports', exist_ok=True)
+    
     # Convert the classification report to a DataFrame
     report_df = pd.DataFrame(class_report).transpose()
 

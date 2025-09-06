@@ -78,14 +78,30 @@ model_classifier, training_losses, validation_losses = train_classifier(
 # Plot training and validation losses
 plot_train_and_val_losses(training_losses, validation_losses, 'classifier_train')
 
-# Evaluate the model on the test set
-acc, prec, rec, f1, conf_mat = evaluate_classifier(
+# Evaluate on TRAINING data
+print("Evaluating on training data...")
+train_acc, train_prec, train_rec, train_f1, train_conf_mat = evaluate_classifier(
     model_classifier=model_classifier,
-    test_loader=denoised_test_loader,
+    test_loader=denoised_train_loader,  # Training data
     device=device,
     label_encoder=label_encoder,
-    model_name='classifier_train'
+    model_name='classifier_train'       # Correct name
 )
+plot_conf_matrix(train_conf_mat, label_encoder, model_name='classifier_train')
 
-# Plot confusion matrix
-plot_conf_matrix(conf_mat, label_encoder, model_name='classifier_train')
+# Evaluate on TEST data  
+print("Evaluating on test data...")
+test_acc, test_prec, test_rec, test_f1, test_conf_mat = evaluate_classifier(
+    model_classifier=model_classifier,
+    test_loader=denoised_test_loader,   # Test data
+    device=device,
+    label_encoder=label_encoder,
+    model_name='classifier_test'        # Correct name
+)
+plot_conf_matrix(test_conf_mat, label_encoder, model_name='classifier_test')
+
+# Compare results
+print(f"\n=== Performance Comparison ===")
+print(f"Training Accuracy: {train_acc:.4f}")
+print(f"Test Accuracy: {test_acc:.4f}")
+print(f"Generalization Gap: {train_acc - test_acc:.4f}")

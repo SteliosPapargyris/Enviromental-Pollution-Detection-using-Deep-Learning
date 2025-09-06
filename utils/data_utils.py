@@ -7,6 +7,9 @@ import torch
 import os
 from typing import List
 from utils.config import *
+import json
+import numpy as np
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 def dataset_creation(csv_indices: List[int], baseline_chip: int) -> pd.DataFrame:
     merged_csv_path = os.path.join(base_path, "shuffled_dataset", "merged.csv")
@@ -57,11 +60,26 @@ def load_and_preprocess_data_autoencoder(file_path, random_state=42):
     y = df.drop(columns=["match_Chip"])
     y = y.iloc[:, 35:-1]
 
-    # Split the data while maintaining Temperature and Class tracking
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=random_state)
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.222, random_state=random_state)
-    return (X_train, y_train, X_val, y_val, X_test, y_test,label_encoder)
+    # 70-20-10 split
+    X_train, X_temp, y_train, y_temp = train_test_split(
+        X, y, 
+        test_size=0.3,  # 30% for temp
+        random_state=random_state
+    )
+    
+    X_val, X_test, y_val, y_test = train_test_split(
+        X_temp, y_temp,
+        test_size=0.333,  # 10% of total
+        random_state=random_state
+    )
 
+    print(f"\n=== Autoencoder Data Split ===")
+    total_samples = len(X)
+    print(f"Training: {len(X_train)} samples ({len(X_train)/total_samples:.1%})")
+    print(f"Validation: {len(X_val)} samples ({len(X_val)/total_samples:.1%})")
+    print(f"Test: {len(X_test)} samples ({len(X_test)/total_samples:.1%})")
+
+    return (X_train, y_train, X_val, y_val, X_test, y_test, label_encoder)
 
 def load_and_preprocess_data_classifier(file_path, random_state=42):
     # Load data
@@ -80,15 +98,38 @@ def load_and_preprocess_data_classifier(file_path, random_state=42):
     X = X.iloc[:, :33]
     y = df['train_Class']
 
-    # Split the data while maintaining Temperature and Class tracking
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=random_state)
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.222, random_state=random_state)
-    return (X_train, y_train, X_val, y_val, X_test, y_test,label_encoder)
+    # First split: 70% train, 30% temp
+    X_train, X_temp, y_train, y_temp = train_test_split(
+        X, y, 
+        test_size=0.3,  # 30% for temp (validation + test)
+        random_state=random_state,
+        stratify=y  # Ensure class distribution is maintained
+    )
+    
+    # Second split: 20% validation, 10% test (from the 30% temp)
+    X_val, X_test, y_val, y_test = train_test_split(
+        X_temp, y_temp,
+        test_size=0.333,  # 10% of total = 1/3 of 30%
+        random_state=random_state,
+        stratify=y_temp  # Ensure class distribution is maintained
+    )
+    
+    # Print actual split sizes for verification
+    total_samples = len(X)
+    print(f"\n=== Data Split Verification ===")
+    print(f"Total samples: {total_samples}")
+    print(f"Training: {len(X_train)} samples ({len(X_train)/total_samples:.1%})")
+    print(f"Validation: {len(X_val)} samples ({len(X_val)/total_samples:.1%})")
+    print(f"Test: {len(X_test)} samples ({len(X_test)/total_samples:.1%})")
+
+    return (X_train, y_train, X_val, y_val, X_test, y_test, label_encoder)
 
 def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42, 
-                                stats_source='compute', stats_path=None):
+                                stats_source='compute', stats_path=None,
+                                apply_normalization=True, normalization_type='class_based', 
+                                normalize_target_class=False):
     """
-    Load and preprocess test data with normalization based on target class statistics.
+    Load and preprocess test data with optional normalization strategies.
     
     Args:
         file_path (str): Path to the test CSV file
@@ -96,13 +137,13 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
         random_seed (int): Random seed for reproducibility
         stats_source (str): 'compute' to calculate stats, 'json' to load from file
         stats_path (str): Path to JSON stats file (required if stats_source='json')
+        apply_normalization (bool): Whether to apply normalization (default: True)
+        normalization_type (str): Type of normalization - 'class_based', 'standard', 'minmax', 'none'
+        normalize_target_class (bool): Whether to normalize target class features (default: False)
         
     Returns:
         tuple: (X, y, label_encoder) - features, labels, and label encoder
     """
-    import json
-    import numpy as np
-    
     # Load and visualize raw data
     df = pd.read_csv(file_path)
     
@@ -130,6 +171,40 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
     
     target_class_encoded = target_class - 1  # Adjust for 0-based indexing
     
+    # Apply normalization based on the chosen strategy
+    if apply_normalization:
+        if normalization_type == 'class_based':
+            # Original class-based normalization
+            _apply_class_based_normalization(X, y, df, target_class_encoded, peak_columns, 
+                                           stats_source, stats_path, normalize_target_class)
+            print(f"Applied class-based normalization (target class normalization: {normalize_target_class})")
+            
+        elif normalization_type == 'standard':
+            # Standard z-score normalization
+            _apply_standard_normalization(X, peak_columns)
+            print("Applied standard z-score normalization")
+            
+        elif normalization_type == 'minmax':
+            # Min-max normalization
+            _apply_minmax_normalization(X, peak_columns)
+            print("Applied min-max normalization")
+            
+        elif normalization_type == 'none':
+            print("No normalization applied")
+            
+        else:
+            raise ValueError(f"Unknown normalization_type: {normalization_type}. "
+                           "Choose from: 'class_based', 'standard', 'minmax', 'none'")
+    else:
+        print("Normalization disabled")
+    
+    return X, y, label_encoder
+
+
+def _apply_class_based_normalization(X, y, df, target_class_encoded, peak_columns, 
+                                   stats_source, stats_path, normalize_target_class):
+    """Apply class-based normalization using target class statistics."""
+    
     # Get normalization statistics based on chosen method
     if stats_source == 'json':
         if stats_path is None:
@@ -142,9 +217,8 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
         peak_mean = np.array(stats['mean'])
         peak_std = np.array(stats['std'])
         
-        # Handle temperature stats - you may need to adjust this based on your JSON structure
-        if 'Temperature' in feature_columns:
-            # Option 1: Calculate temperature stats (if not in JSON)
+        # Handle temperature stats
+        if 'Temperature' in X.columns:
             normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
             normalization_data = df[normalization_mask]
             
@@ -153,12 +227,6 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
             
             temp_mean = normalization_data['Temperature'].mean()
             temp_std = normalization_data['Temperature'].std()
-            
-            # Option 2: Load from JSON if available (uncomment if you save temp stats)
-            # temp_mean = stats.get('temp_mean', temp_mean)
-            # temp_std = stats.get('temp_std', temp_std)
-        
-        print(f"Loaded normalization statistics from: {stats_path}")
         
     elif stats_source == 'compute':
         # Calculate normalization statistics from data
@@ -173,22 +241,48 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
         temp_mean = normalization_data['Temperature'].mean()
         temp_std = normalization_data['Temperature'].std()
         
-        print("Computed normalization statistics from test data")
-        
     else:
         raise ValueError("stats_source must be either 'compute' or 'json'")
     
     # Apply normalization
     _normalize_features(X, y, target_class_encoded, peak_columns, 
-                       peak_mean, peak_std, temp_mean, temp_std)
+                       peak_mean, peak_std, temp_mean, temp_std, normalize_target_class)
+
+
+def _apply_standard_normalization(X, peak_columns):
+    """Apply standard z-score normalization to all features."""
+    from sklearn.preprocessing import StandardScaler
     
-    return X, y, label_encoder
+    # Normalize peak features
+    if peak_columns:
+        scaler_peaks = StandardScaler()
+        X[peak_columns] = scaler_peaks.fit_transform(X[peak_columns])
+    
+    # Normalize temperature
+    if 'Temperature' in X.columns:
+        scaler_temp = StandardScaler()
+        X[['Temperature']] = scaler_temp.fit_transform(X[['Temperature']])
+
+
+def _apply_minmax_normalization(X, peak_columns):
+    """Apply min-max normalization to all features."""
+    from sklearn.preprocessing import MinMaxScaler
+    
+    # Normalize peak features
+    if peak_columns:
+        scaler_peaks = MinMaxScaler()
+        X[peak_columns] = scaler_peaks.fit_transform(X[peak_columns])
+    
+    # Normalize temperature
+    if 'Temperature' in X.columns:
+        scaler_temp = MinMaxScaler()
+        X[['Temperature']] = scaler_temp.fit_transform(X[['Temperature']])
 
 
 def _normalize_features(X, y, target_class_encoded, peak_columns, 
-                       peak_mean, peak_std, temp_mean, temp_std):
+                       peak_mean, peak_std, temp_mean, temp_std, normalize_target_class=False):
     """
-    Helper function to apply normalization to features.
+    Helper function to apply class-based normalization to features.
     
     Args:
         X (pd.DataFrame): Feature matrix to normalize
@@ -197,69 +291,32 @@ def _normalize_features(X, y, target_class_encoded, peak_columns,
         peak_columns (list): List of peak column names
         peak_mean, peak_std (np.array): Mean and std for peak normalization
         temp_mean, temp_std (float): Mean and std for temperature normalization
+        normalize_target_class (bool): Whether to normalize target class features
     """
-    # Normalize peak features for non-target classes only
-    non_target_mask = (y != target_class_encoded)
+    # Determine which classes to normalize
+    if normalize_target_class:
+        # Normalize all classes
+        normalize_mask = pd.Series([True] * len(y), index=y.index)
+    else:
+        # Normalize only non-target classes (original behavior)
+        normalize_mask = (y != target_class_encoded)
     
-    if peak_columns and non_target_mask.sum() > 0:
+    if peak_columns and normalize_mask.sum() > 0:
         # Avoid division by zero
         peak_std_safe = np.where(peak_std == 0, 1, peak_std)
-        X.loc[non_target_mask, peak_columns] = (
-            X.loc[non_target_mask, peak_columns] - peak_mean
+        X.loc[normalize_mask, peak_columns] = (
+            X.loc[normalize_mask, peak_columns] - peak_mean
         ) / peak_std_safe
     
-    # Normalize temperature for ALL classes
+    # Normalize temperature for ALL classes (or subset based on normalize_target_class)
     if 'Temperature' in X.columns:
         temp_std_safe = temp_std if temp_std != 0 else 1
-        X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std_safe
-
-
-def get_normalization_statistics(df, chip_id, class_id, feature_columns):
-    """
-    Extract normalization statistics from specific chip and class.
-    
-    Args:
-        df (pd.DataFrame): Input dataframe
-        chip_id (int): Chip identifier
-        class_id (int): Class identifier
-        feature_columns (list): Columns to calculate statistics for
-        
-    Returns:
-        tuple: (mean_values, std_values) as numpy arrays
-    """
-    subset = df[(df['Chip'] == chip_id) & (df['Class'] == class_id)]
-    
-    if subset.empty:
-        raise ValueError(f"No data found for chip {chip_id}, class {class_id}")
-    
-    mean_values = subset[feature_columns].mean().values
-    std_values = subset[feature_columns].std().values
-    
-    return mean_values, std_values
-
-
-def validate_normalization_data(df, required_columns):
-    """
-    Validate that the dataframe contains required columns and data.
-    
-    Args:
-        df (pd.DataFrame): Input dataframe
-        required_columns (list): List of required column names
-        
-    Raises:
-        ValueError: If validation fails
-    """
-    missing_columns = set(required_columns) - set(df.columns)
-    if missing_columns:
-        raise ValueError(f"Missing required columns: {missing_columns}")
-    
-    if df.empty:
-        raise ValueError("Input dataframe is empty")
-    
-    # Check for sufficient data per class
-    class_counts = df['Class'].value_counts()
-    if class_counts.min() < 5:  # Arbitrary threshold
-        print(f"Warning: Some classes have very few samples: {class_counts.to_dict()}")
+        if normalize_target_class:
+            # Normalize temperature for all classes
+            X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std_safe
+        else:
+            # Normalize temperature for all classes (original behavior)
+            X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std_safe
 
 def tensor_dataset_autoencoder(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None):
     train_loader, val_loader, test_loader = None, None, None
@@ -287,7 +344,6 @@ def tensor_dataset_autoencoder(batch_size: int, X_train=None, y_train=None, X_va
 
     return train_loader, val_loader, test_loader
 
-# TODO fix this
 def tensor_dataset_classifier(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None):
     train_loader, val_loader, test_loader = None, None, None
 
