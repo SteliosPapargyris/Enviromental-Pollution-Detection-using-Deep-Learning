@@ -1,2 +1,7 @@
 .history/
 data/**
+generate_interferogram.py
+create_csv_dataset.py
+.idea/
+.vscode/
+pths/**

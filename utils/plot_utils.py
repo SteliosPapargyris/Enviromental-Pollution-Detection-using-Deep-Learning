@@ -1,6 +1,38 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import numpy as np
+
+def plot_raw_mean_feature_per_class(df, class_column='Class', save_path='raw_mean_feature_per_class.png', title='Raw Mean Feature per Class', log_y=False):
+    """
+    Plots the mean raw features per class from a DataFrame.
+
+    Args:
+        df (pd.DataFrame): Input dataframe containing features and a class column.
+        class_column (str): Name of the column containing class labels.
+        save_path (str): Path to save the plot.
+        title (str): Plot title.
+        log_y (bool): Whether to use a logarithmic scale on the y-axis.
+    """
+    peak_cols = [col for col in df.columns if col.startswith('Peak')]
+    mean_per_class = df.groupby(class_column)[peak_cols].mean()
+
+    x = np.arange(1, len(peak_cols) + 1)
+
+    plt.figure(figsize=(12, 6))
+    for class_label, row in mean_per_class.iterrows():
+        plt.plot(x, row.values, label=f'Class {int(class_label)}')
+
+    plt.title(title)
+    plt.xlabel('Peak Index (1–32)')
+    plt.ylabel('Raw Value')
+    if log_y:
+        plt.yscale('log')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.show()
 
 def plot_conf_matrix(conf_matrix, label_encoder, model_name):
     plt.figure()

@@ -9,7 +9,115 @@ from typing import List
 from utils.config import *
 import json
 import numpy as np
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from pathlib import Path
+
+def save_statistics_json(mean_data, std_data, columns, base_path):
+    """Save statistics in JSON format only"""
+    base_path = Path(base_path)
+    base_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    stats_dict = {
+        "mean": mean_data.tolist(),
+        "std": std_data.tolist(), 
+        "feature_names": columns,
+        "creation_date": pd.Timestamp.now().isoformat(),
+        "shape": mean_data.shape
+    }
+    
+    json_path = f"{base_path}_stats.json"
+    with open(json_path, 'w') as f:
+        json.dump(stats_dict, f, indent=2)
+    
+    print(f"Statistics saved to: {json_path}")
+
+def compute_mean_class_4_then_subtract(
+    df,
+    chip_exclude,
+    class_column,
+    chip_column,
+    columns_to_normalize,
+    target_class=4,
+    save_stats_json=None
+):
+    """
+    Compute the mean and std of the target class (e.g., class 4) per chip,
+    normalize other-class rows using those stats, and save stats to JSON.
+
+    Parameters:
+        df (pd.DataFrame): Input DataFrame.
+        class_column (str): Column name for class labels.
+        chip_column (str): Column name for chip IDs.
+        columns_to_normalize (list): Names of feature columns to normalize.
+        target_class (int): Class to compute normalization stats from.
+        save_stats_json (str): Optional JSON path to save normalization statistics.
+
+    Returns:
+        tuple: (normalized_df, mean_stats, std_stats)
+    """
+    df_copy = df.copy()
+    means_target_rows = []
+    stds_target_rows = []
+    stats_per_chip = []
+
+    for chip, chip_group in df_copy.groupby(chip_column):
+        if chip == chip_exclude:
+            continue
+
+        target_rows = chip_group[chip_group[class_column] == target_class]
+        if target_rows.empty:
+            continue  # Skip if no class 4 in this chip
+
+        mean_target = target_rows[columns_to_normalize].mean()
+        std_target = target_rows[columns_to_normalize].std().replace(0, 1)
+
+        means_target_rows.append(mean_target.values)
+        stds_target_rows.append(std_target.values)
+
+        # Save per-chip stats for JSON
+        chip_stats = {
+            'chip': int(chip),
+            'features': dict(zip(columns_to_normalize, mean_target.values)),
+            'std_values': dict(zip(columns_to_normalize, std_target.values))
+        }
+        stats_per_chip.append(chip_stats)
+
+        # Normalize other-class rows in same chip
+        other_mask = (df_copy[chip_column] == chip) & (df_copy[class_column] != target_class)
+        df_copy.loc[other_mask, columns_to_normalize] = (
+            df_copy.loc[other_mask, columns_to_normalize] - mean_target
+        ) / std_target
+
+    # Compute overall statistics
+    mean_class_4_overall = np.mean(np.stack(means_target_rows), axis=0)
+    std_class_4_overall = np.mean(np.stack(stds_target_rows), axis=0)
+
+    # Save statistics to JSON if path provided
+    if save_stats_json:
+        stats_dict = {
+            "overall_statistics": {
+                "mean": mean_class_4_overall.tolist(),
+                "std": std_class_4_overall.tolist(),
+                "feature_names": columns_to_normalize,
+                "target_class": target_class,
+                "excluded_chip": chip_exclude
+            },
+            "per_chip_statistics": stats_per_chip,
+            "metadata": {
+                "creation_date": pd.Timestamp.now().isoformat(),
+                "total_chips_processed": len(stats_per_chip),
+                "feature_count": len(columns_to_normalize)
+            }
+        }
+        
+        # Create directory if needed
+        os.makedirs(os.path.dirname(save_stats_json), exist_ok=True)
+        
+        with open(save_stats_json, 'w') as f:
+            json.dump(stats_dict, f, indent=2)
+        
+        print(f"Normalization statistics saved to: {save_stats_json}")
+
+    return df_copy, mean_class_4_overall, std_class_4_overall
 
 def dataset_creation(csv_indices: List[int], baseline_chip: int) -> pd.DataFrame:
     merged_csv_path = os.path.join(base_path, "shuffled_dataset", "merged.csv")

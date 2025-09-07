@@ -22,7 +22,7 @@ X_test, y_test, label_encoder = load_and_preprocess_test_data(
     normalize_target_class=False
 )
 
-# Option 2: Class-based normalization - normalize ALL classes including target
+# # Option 2: Class-based normalization - normalize ALL classes including target
 # X_test, y_test, label_encoder = load_and_preprocess_test_data(
 #     file_path=test_file_path, 
 #     fraction=1, 
