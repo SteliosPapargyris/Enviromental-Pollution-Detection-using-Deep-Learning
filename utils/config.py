@@ -27,7 +27,7 @@ class_column = "Class"
 normalization_technique = "standardscaler"
 target_class = 4
 num_chip_selection = 5
-base_path = f"data/out/normalized"
+base_path = f"data/out"
 stats_path = f"data/fts_mzi_dataset/normalization_statistics.json"
 # base_path = "/Users/steliospapargyris/Documents/MyProjects/data_thesis/no_normalization/5chips_old"
 # base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_{target_class}_of_every_chip/{num_chip_selection}chips_old"
@@ -41,3 +41,32 @@ matplotlib.use('Agg')  # Use a non-interactive backend
 torch.manual_seed(seed), torch.cuda.manual_seed_all(seed), np.random.seed(seed), random.seed(seed)
 torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+
+# Normalization configuration
+NORMALIZATION_CONFIG = {
+    'class_based': {
+        'name': 'class_based_mean_std_normalized',
+        'description': 'Class-4 Mean/Std Normalization'
+    },
+    'class_based_minmax': {
+        'name': 'minmax_normalized', 
+        'description': 'Class-4 Min-Max Normalization'
+    },
+    'standard': {
+        'name': 'standard_normalized',
+        'description': 'Standard Z-Score Normalization'
+    },
+    'minmax': {
+        'name': 'sklearn_minmax_normalized',
+        'description': 'Sklearn Min-Max Normalization'
+    },
+    'none': {
+        'name': 'raw',
+        'description': 'No Normalization'
+    }
+}
+
+# =============================================================================
+# ACTIVE NORMALIZATION METHOD - Change this to train/test with different methods
+# =============================================================================
+CURRENT_NORMALIZATION = 'none'  # Change this to use different methods

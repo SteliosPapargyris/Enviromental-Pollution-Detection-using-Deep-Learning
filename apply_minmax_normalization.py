@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
-from utils.data_utils import compute_mean_class_4_then_subtract
-from utils.plot_utils import plot_raw_mean_feature_per_class
+from utils.data_utils import compute_minmax_class_4_then_normalize
+from utils.plot_utils import plot_raw_mean_feature_per_class, plot_minmax_normalized_mean_feature_per_class
 from utils.config import *
 
 config = {
@@ -9,7 +9,7 @@ config = {
     "file_path": "data/out/transformed_simulated_data.csv",
     "output_dir": Path("data/fts_mzi_dataset"),
     "plots_dir": Path("out"),
-    "normalized_dir": Path("data/out/normalized"),
+    "normalized_dir": Path("data/out/normalized_minmax"),
     "class_column": "Class",
     "chip_column": "Chip", 
     "target_class": target_class
@@ -30,7 +30,7 @@ try:
     config["plots_dir"].mkdir(parents=True, exist_ok=True)
     config["normalized_dir"].mkdir(parents=True, exist_ok=True)
     
-    # Plot raw data
+    # Plot raw data (if not already done)
     plot_raw_mean_feature_per_class(
         data,
         class_column=config["class_column"],
@@ -45,40 +45,55 @@ try:
     print(f"Found {len(peak_columns)} Peak columns and {len(temp_columns)} Temperature columns")
     print(f"Total feature columns to normalize: {len(columns_to_normalize)}")
     
-    # Normalize dataset (simplified call)
-    print("Applying normalization...")
-    normalized_data, mean_stats, std_stats = compute_mean_class_4_then_subtract(
+    # Apply min-max normalization
+    print("Applying min-max normalization...")
+    normalized_data, min_stats, max_stats = compute_minmax_class_4_then_normalize(
         data,
         chip_exclude=config["chip_exclude"],
         class_column=config["class_column"],
         chip_column=config["chip_column"],
         columns_to_normalize=columns_to_normalize,
         target_class=config["target_class"],
-        save_stats_json=str(config["output_dir"] / "normalization_statistics.json")
+        save_stats_json=str(config["output_dir"] / "minmax_normalization_statistics.json")
+    )
+
+    # Plot normalized data
+    plot_minmax_normalized_mean_feature_per_class(
+        normalized_data,
+        class_column=config["class_column"],
+        save_path=str(config["plots_dir"] / "minmax_normalized_train_mean_feature_per_class.png"),
+        title='Min-Max Normalized Mean Feature per Class (Training Data)'
     )
 
     # Save normalized dataset
-    output_path = config["output_dir"] / "Normalized_FTS-MZI_Matrix.csv"
+    output_path = config["output_dir"] / "MinMax_Normalized_FTS-MZI_Matrix.csv"
     normalized_data.to_csv(output_path, index=False)
-    print(f"Normalized dataset saved to {output_path}")
+    print(f"Min-max normalized dataset saved to {output_path}")
     
-    # Split normalized data by chip and save to data/out/normalized/
-    print("\nSplitting normalized dataset by chip...")
+    # Split normalized data by chip and save to data/out/normalized_minmax/
+    print("\nSplitting min-max normalized dataset by chip...")
     unique_chips = sorted(normalized_data[config["chip_column"]].unique())
     
     for chip in unique_chips:
         # Filter data for this chip
         chip_data = normalized_data[normalized_data[config["chip_column"]] == chip]
         
-        # Save to data/out/normalized/{chip}.csv
+        # Save to data/out/normalized_minmax/{chip}.csv
         chip_output_path = config["normalized_dir"] / f"{chip}.csv"
         chip_data.to_csv(chip_output_path, index=False)
         
         print(f"  Chip {chip}: {len(chip_data)} samples → {chip_output_path}")
     
-    print(f"\n✅ Processing completed successfully!")
-    print(f"📁 Normalized chip files saved in: {config['normalized_dir']}")
+    print(f"\n✅ Min-max normalization completed successfully!")
+    print(f"📁 Min-max normalized chip files saved in: {config['normalized_dir']}")
     print(f"📊 Total chips processed: {len(unique_chips)}")
+    
+    # Display normalization statistics summary
+    print(f"\n📈 Normalization Statistics Summary:")
+    print(f"   • Method: Min-Max scaling based on Class {config['target_class']}")
+    print(f"   • Features normalized: {len(columns_to_normalize)}")
+    print(f"   • Min values range: [{min_stats.min():.4f}, {min_stats.max():.4f}]")
+    print(f"   • Max values range: [{max_stats.min():.4f}, {max_stats.max():.4f}]")
     
 except Exception as e:
     print(f"❌ Error: {str(e)}")

@@ -119,6 +119,103 @@ def compute_mean_class_4_then_subtract(
 
     return df_copy, mean_class_4_overall, std_class_4_overall
 
+
+def compute_minmax_class_4_then_normalize(
+    df,
+    chip_exclude,
+    class_column,
+    chip_column,
+    columns_to_normalize,
+    target_class=4,
+    save_stats_json=None
+):
+    """
+    Compute the min and max of the target class (e.g., class 4) per chip,
+    normalize other-class rows using min-max scaling, and save stats to JSON.
+
+    Parameters:
+        df (pd.DataFrame): Input DataFrame.
+        chip_exclude: Chip to exclude from processing.
+        class_column (str): Column name for class labels.
+        chip_column (str): Column name for chip IDs.
+        columns_to_normalize (list): Names of feature columns to normalize.
+        target_class (int): Class to compute normalization stats from.
+        save_stats_json (str): Optional JSON path to save normalization statistics.
+
+    Returns:
+        tuple: (normalized_df, min_stats, max_stats)
+    """
+    df_copy = df.copy()
+    mins_target_rows = []
+    maxs_target_rows = []
+    stats_per_chip = []
+
+    for chip, chip_group in df_copy.groupby(chip_column):
+        if chip == chip_exclude:
+            continue
+
+        target_rows = chip_group[chip_group[class_column] == target_class]
+        if target_rows.empty:
+            continue  # Skip if no class 4 in this chip
+
+        min_target = target_rows[columns_to_normalize].min()
+        max_target = target_rows[columns_to_normalize].max()
+        
+        # Handle cases where min == max (avoid division by zero)
+        range_target = max_target - min_target
+        range_target = range_target.replace(0, 1)
+
+        mins_target_rows.append(min_target.values)
+        maxs_target_rows.append(max_target.values)
+
+        # Save per-chip stats for JSON
+        chip_stats = {
+            'chip': int(chip),
+            'min_values': dict(zip(columns_to_normalize, min_target.values)),
+            'max_values': dict(zip(columns_to_normalize, max_target.values)),
+            'range_values': dict(zip(columns_to_normalize, range_target.values))
+        }
+        stats_per_chip.append(chip_stats)
+
+        # Min-max normalize other-class rows in same chip: (x - min) / (max - min)
+        other_mask = (df_copy[chip_column] == chip) & (df_copy[class_column] != target_class)
+        df_copy.loc[other_mask, columns_to_normalize] = (
+            df_copy.loc[other_mask, columns_to_normalize] - min_target
+        ) / range_target
+
+    # Compute overall statistics
+    min_class_4_overall = np.mean(np.stack(mins_target_rows), axis=0)
+    max_class_4_overall = np.mean(np.stack(maxs_target_rows), axis=0)
+
+    # Save statistics to JSON if path provided
+    if save_stats_json:
+        stats_dict = {
+            "overall_statistics": {
+                "min": min_class_4_overall.tolist(),
+                "max": max_class_4_overall.tolist(),
+                "feature_names": columns_to_normalize,
+                "target_class": target_class,
+                "excluded_chip": chip_exclude
+            },
+            "per_chip_statistics": stats_per_chip,
+            "metadata": {
+                "creation_date": pd.Timestamp.now().isoformat(),
+                "total_chips_processed": len(stats_per_chip),
+                "feature_count": len(columns_to_normalize),
+                "normalization_type": "minmax"
+            }
+        }
+        
+        # Create directory if needed
+        os.makedirs(os.path.dirname(save_stats_json), exist_ok=True)
+        
+        with open(save_stats_json, 'w') as f:
+            json.dump(stats_dict, f, indent=2)
+        
+        print(f"Min-max normalization statistics saved to: {save_stats_json}")
+
+    return df_copy, min_class_4_overall, max_class_4_overall
+
 def dataset_creation(csv_indices: List[int], baseline_chip: int) -> pd.DataFrame:
     merged_csv_path = os.path.join(base_path, "shuffled_dataset", "merged.csv")
 
@@ -159,10 +256,7 @@ def load_and_preprocess_data_autoencoder(file_path, random_state=42):
     label_encoder = LabelEncoder()
     df['train_Class'] = label_encoder.fit_transform(df['train_Class'])
     df['match_Class'] = label_encoder.fit_transform(df['match_Class'])
-    df['train_Temperature'] = (df['train_Temperature'] - df['train_Temperature'].mean()) / df['train_Temperature'].std()
-    df.rename(columns={"train_Temperature": "train_Temperature_normalized"}, inplace=True)
-    df['match_Temperature'] = (df['match_Temperature'] - df['match_Temperature'].mean()) / df['match_Temperature'].std()
-    df.rename(columns={"match_Temperature": "match_Temperature_normalized"}, inplace=True)
+    # NOTE: Temperature normalization removed - should be handled by apply_normalization.py scripts
     X = df.drop(columns=["train_Chip"])
     X = X.iloc[:, :33]
     y = df.drop(columns=["match_Chip"])
@@ -198,9 +292,7 @@ def load_and_preprocess_data_classifier(file_path, random_state=42):
     df['train_Class'] = label_encoder.fit_transform(df['train_Class'])
     df['match_Class'] = label_encoder.fit_transform(df['match_Class'])
     
-    # Normalize the 'temperature' column using Z-score standardization
-    df['train_Temperature'] = (df['train_Temperature'] - df['train_Temperature'].mean()) / df['train_Temperature'].std()
-    df.rename(columns={"train_Temperature": "train_Temperature_normalized"}, inplace=True)
+    # NOTE: Temperature normalization removed - should be handled by apply_normalization.py scripts
 
     X = df.drop(columns=["train_Chip"])
     X = X.iloc[:, :33]
@@ -271,7 +363,9 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
     
     # Define columns for processing
     feature_columns = [col for col in df.columns if col not in ['Class', 'Chip']]
-    peak_columns = [col for col in feature_columns if col != 'Temperature']
+    peak_columns = [col for col in feature_columns if col.startswith('Peak')]
+    temp_columns = [col for col in feature_columns if 'Temperature' in col]
+    normalization_columns = peak_columns + temp_columns  # Include both Peak and Temperature columns
     
     # Separate features and labels
     X = df[feature_columns].copy()
@@ -283,33 +377,39 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
     if apply_normalization:
         if normalization_type == 'class_based':
             # Original class-based normalization
-            _apply_class_based_normalization(X, y, df, target_class_encoded, peak_columns, 
+            _apply_class_based_normalization(X, y, df, target_class_encoded, normalization_columns, 
                                            stats_source, stats_path, normalize_target_class)
             print(f"Applied class-based normalization (target class normalization: {normalize_target_class})")
             
         elif normalization_type == 'standard':
             # Standard z-score normalization
-            _apply_standard_normalization(X, peak_columns)
+            _apply_standard_normalization(X, normalization_columns)
             print("Applied standard z-score normalization")
             
         elif normalization_type == 'minmax':
             # Min-max normalization
-            _apply_minmax_normalization(X, peak_columns)
+            _apply_minmax_normalization(X, normalization_columns)
             print("Applied min-max normalization")
+            
+        elif normalization_type == 'class_based_minmax':
+            # Class-based min-max normalization (using target class statistics)
+            _apply_class_based_minmax_normalization(X, y, df, target_class_encoded, normalization_columns, 
+                                                  stats_source, stats_path, normalize_target_class)
+            print(f"Applied class-based min-max normalization (target class normalization: {normalize_target_class})")
             
         elif normalization_type == 'none':
             print("No normalization applied")
             
         else:
             raise ValueError(f"Unknown normalization_type: {normalization_type}. "
-                           "Choose from: 'class_based', 'standard', 'minmax', 'none'")
+                           "Choose from: 'class_based', 'standard', 'minmax', 'class_based_minmax', 'none'")
     else:
         print("Normalization disabled")
     
     return X, y, label_encoder
 
 
-def _apply_class_based_normalization(X, y, df, target_class_encoded, peak_columns, 
+def _apply_class_based_normalization(X, y, df, target_class_encoded, normalization_columns, 
                                    stats_source, stats_path, normalize_target_class):
     """Apply class-based normalization using target class statistics."""
     
@@ -344,8 +444,12 @@ def _apply_class_based_normalization(X, y, df, target_class_encoded, peak_column
         if normalization_data.empty:
             raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
         
+        # Separate peak columns and temperature columns for consistent calculation
+        peak_columns = [col for col in normalization_columns if col.startswith('Peak')]
         peak_mean = normalization_data[peak_columns].mean().values
         peak_std = normalization_data[peak_columns].std().values
+        
+        # Calculate temperature stats separately
         temp_mean = normalization_data['Temperature'].mean()
         temp_std = normalization_data['Temperature'].std()
         
@@ -353,18 +457,19 @@ def _apply_class_based_normalization(X, y, df, target_class_encoded, peak_column
         raise ValueError("stats_source must be either 'compute' or 'json'")
     
     # Apply normalization
+    peak_columns = [col for col in normalization_columns if col.startswith('Peak')]
     _normalize_features(X, y, target_class_encoded, peak_columns, 
                        peak_mean, peak_std, temp_mean, temp_std, normalize_target_class)
 
 
-def _apply_standard_normalization(X, peak_columns):
+def _apply_standard_normalization(X, normalization_columns):
     """Apply standard z-score normalization to all features."""
     from sklearn.preprocessing import StandardScaler
     
     # Normalize peak features
-    if peak_columns:
+    if normalization_columns:
         scaler_peaks = StandardScaler()
-        X[peak_columns] = scaler_peaks.fit_transform(X[peak_columns])
+        X[normalization_columns] = scaler_peaks.fit_transform(X[normalization_columns])
     
     # Normalize temperature
     if 'Temperature' in X.columns:
@@ -372,19 +477,119 @@ def _apply_standard_normalization(X, peak_columns):
         X[['Temperature']] = scaler_temp.fit_transform(X[['Temperature']])
 
 
-def _apply_minmax_normalization(X, peak_columns):
+def _apply_minmax_normalization(X, normalization_columns):
     """Apply min-max normalization to all features."""
     from sklearn.preprocessing import MinMaxScaler
     
     # Normalize peak features
-    if peak_columns:
+    if normalization_columns:
         scaler_peaks = MinMaxScaler()
-        X[peak_columns] = scaler_peaks.fit_transform(X[peak_columns])
+        X[normalization_columns] = scaler_peaks.fit_transform(X[normalization_columns])
     
     # Normalize temperature
     if 'Temperature' in X.columns:
         scaler_temp = MinMaxScaler()
         X[['Temperature']] = scaler_temp.fit_transform(X[['Temperature']])
+
+
+def _apply_class_based_minmax_normalization(X, y, df, target_class_encoded, normalization_columns, 
+                                          stats_source, stats_path, normalize_target_class):
+    """Apply class-based min-max normalization using target class statistics."""
+    
+    # Get normalization statistics based on chosen method
+    if stats_source == 'json':
+        if stats_path is None:
+            raise ValueError("stats_path must be provided when stats_source='json'")
+        
+        # Load statistics from JSON
+        with open(stats_path, 'r') as f:
+            stats = json.load(f)
+        
+        # Check if this is min-max stats or mean/std stats
+        if 'min' in stats.get('overall_statistics', {}):
+            # Min-max statistics
+            peak_min = np.array(stats['overall_statistics']['min'])
+            peak_max = np.array(stats['overall_statistics']['max'])
+        else:
+            raise ValueError("JSON stats file does not contain min-max statistics. Please use minmax normalization stats.")
+        
+        # Handle temperature stats
+        if 'Temperature' in X.columns:
+            normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+            normalization_data = df[normalization_mask]
+            
+            if normalization_data.empty:
+                raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+            
+            temp_min = normalization_data['Temperature'].min()
+            temp_max = normalization_data['Temperature'].max()
+        
+    elif stats_source == 'compute':
+        # Calculate normalization statistics from data
+        normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+        normalization_data = df[normalization_mask]
+        
+        if normalization_data.empty:
+            raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+        
+        # Separate peak columns and temperature columns for consistent calculation
+        peak_columns = [col for col in normalization_columns if col.startswith('Peak')]
+        peak_min = normalization_data[peak_columns].min().values
+        peak_max = normalization_data[peak_columns].max().values
+        
+        # Calculate temperature stats separately
+        temp_min = normalization_data['Temperature'].min()
+        temp_max = normalization_data['Temperature'].max()
+        
+    else:
+        raise ValueError("stats_source must be either 'compute' or 'json'")
+    
+    # Apply normalization
+    peak_columns = [col for col in normalization_columns if col.startswith('Peak')]
+    _normalize_features_minmax(X, y, target_class_encoded, peak_columns, 
+                              peak_min, peak_max, temp_min, temp_max, normalize_target_class)
+
+
+def _normalize_features_minmax(X, y, target_class_encoded, peak_columns, 
+                              peak_min, peak_max, temp_min, temp_max, normalize_target_class=False):
+    """
+    Helper function to apply class-based min-max normalization to features.
+    
+    Args:
+        X (pd.DataFrame): Feature matrix to normalize
+        y (pd.Series): Labels
+        target_class_encoded (int): Encoded target class value
+        peak_columns (list): List of peak column names
+        peak_min, peak_max (np.array): Min and max for peak normalization
+        temp_min, temp_max (float): Min and max for temperature normalization
+        normalize_target_class (bool): Whether to normalize target class features
+    """
+    # Determine which classes to normalize
+    if normalize_target_class:
+        # Normalize all classes
+        normalize_mask = pd.Series([True] * len(y), index=y.index)
+    else:
+        # Normalize only non-target classes (original behavior)
+        normalize_mask = (y != target_class_encoded)
+    
+    if peak_columns and normalize_mask.sum() > 0:
+        # Avoid division by zero
+        peak_range = peak_max - peak_min
+        peak_range_safe = np.where(peak_range == 0, 1, peak_range)
+        X.loc[normalize_mask, peak_columns] = (
+            X.loc[normalize_mask, peak_columns] - peak_min
+        ) / peak_range_safe
+    
+    # Normalize temperature based on normalize_target_class setting
+    if 'Temperature' in X.columns:
+        temp_range = temp_max - temp_min
+        temp_range_safe = temp_range if temp_range != 0 else 1
+        if normalize_target_class:
+            # Normalize temperature for all classes
+            X['Temperature'] = (X['Temperature'] - temp_min) / temp_range_safe
+        else:
+            # Normalize temperature only for non-target classes
+            X.loc[normalize_mask, 'Temperature'] = (X.loc[normalize_mask, 'Temperature'] - temp_min) / temp_range_safe
 
 
 def _normalize_features(X, y, target_class_encoded, peak_columns, 
@@ -416,15 +621,15 @@ def _normalize_features(X, y, target_class_encoded, peak_columns,
             X.loc[normalize_mask, peak_columns] - peak_mean
         ) / peak_std_safe
     
-    # Normalize temperature for ALL classes (or subset based on normalize_target_class)
+    # Normalize temperature based on normalize_target_class setting
     if 'Temperature' in X.columns:
         temp_std_safe = temp_std if temp_std != 0 else 1
         if normalize_target_class:
             # Normalize temperature for all classes
             X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std_safe
         else:
-            # Normalize temperature for all classes (original behavior)
-            X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std_safe
+            # Normalize temperature only for non-target classes
+            X.loc[normalize_mask, 'Temperature'] = (X.loc[normalize_mask, 'Temperature'] - temp_mean) / temp_std_safe
 
 def tensor_dataset_autoencoder(batch_size: int, X_train=None, y_train=None, X_val=None, y_val=None, X_test=None, y_test=None):
     train_loader, val_loader, test_loader = None, None, None

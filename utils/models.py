@@ -3,24 +3,24 @@ import torch.nn.functional as F
 
 
 class ConvDenoiser(nn.Module):
-    def __init__(self, input_length=33):
+    def __init__(self, input_size=33):
         super(ConvDenoiser, self).__init__()
         
-        self.input_length = input_length
+        self.input_size = input_size
         
         ## encoder layers ##
         self.conv1 = nn.Conv1d(1, 32, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm1d(32)
-        self.pool1 = nn.AdaptiveMaxPool1d(input_length // 2)  # 33 -> 16
+        self.pool1 = nn.AdaptiveMaxPool1d(input_size // 2)  # 33 -> 16
         
         self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm1d(64)
-        self.pool2 = nn.AdaptiveMaxPool1d(input_length // 4)  # 16 -> 8
+        self.pool2 = nn.AdaptiveMaxPool1d(input_size // 4)  # 16 -> 8
         
-        self.dropout = nn.Dropout(0.1)
+        self.dropout = nn.Dropout(0.2)
         
         # More precise calculation
-        self.encoded_length = input_length // 4
+        self.encoded_length = input_size // 4
         self.flattened_size = 64 * self.encoded_length
         self.fc = nn.Linear(self.flattened_size, self.flattened_size // 2)
         self.fc_decode = nn.Linear(self.flattened_size // 2, self.flattened_size)
@@ -140,7 +140,7 @@ class Classifier(nn.Module):
         
         # Fully connected layers
         self.fc1 = nn.Linear(128, 64)
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0.5)
         self.fc2 = nn.Linear(64, num_classes)
 
     def forward(self, z):
