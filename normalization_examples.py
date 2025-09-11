@@ -37,11 +37,37 @@ examples = {
         'files_generated': ['raw_test_*.png', 'confusion_matrix_classifier_raw_test.*']
     },
     
+    "Class-4 Robust Scaling Normalization": {
+        'CURRENT_NORMALIZATION': 'class_based_robust',
+        'CURRENT_STATS_SOURCE': 'compute', 
+        'files_generated': ['robust_normalized_test_*.png', 'confusion_matrix_classifier_robust_normalized_test.*']
+    },
+    
+    "Class-4 Peak-to-Peak Normalization": {
+        'CURRENT_NORMALIZATION': 'class_based_peak_to_peak',
+        'CURRENT_STATS_SOURCE': 'compute', 
+        'files_generated': ['peak_to_peak_normalized_test_*.png', 'confusion_matrix_classifier_peak_to_peak_normalized_test.*']
+    },
+    
     "Load from JSON Stats (Min-Max)": {
         'CURRENT_NORMALIZATION': 'class_based_minmax',
         'CURRENT_STATS_SOURCE': 'json',
         'CURRENT_STATS_PATH': 'data/fts_mzi_dataset/minmax_normalization_statistics.json',
         'files_generated': ['minmax_normalized_test_*.png', 'confusion_matrix_classifier_minmax_normalized_test.*']
+    },
+    
+    "Load from JSON Stats (Robust)": {
+        'CURRENT_NORMALIZATION': 'class_based_robust',
+        'CURRENT_STATS_SOURCE': 'json',
+        'CURRENT_STATS_PATH': 'data/fts_mzi_dataset/robust_normalization_statistics.json',
+        'files_generated': ['robust_normalized_test_*.png', 'confusion_matrix_classifier_robust_normalized_test.*']
+    },
+    
+    "Load from JSON Stats (Peak-to-Peak)": {
+        'CURRENT_NORMALIZATION': 'class_based_peak_to_peak',
+        'CURRENT_STATS_SOURCE': 'json',
+        'CURRENT_STATS_PATH': 'data/fts_mzi_dataset/peak_to_peak_normalization_statistics.json',
+        'files_generated': ['peak_to_peak_normalized_test_*.png', 'confusion_matrix_classifier_peak_to_peak_normalized_test.*']
     }
 }
 

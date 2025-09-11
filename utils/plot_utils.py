@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import numpy as np
+from utils.config import *
+
+norm_config = NORMALIZATION_CONFIG[CURRENT_NORMALIZATION]
+norm_name = norm_config['name']
 
 def plot_raw_mean_feature_per_class(df, class_column='Class', save_path='raw_mean_feature_per_class.png', title='Raw Mean Feature per Class', log_y=False):
     """
@@ -64,6 +68,67 @@ def plot_minmax_normalized_mean_feature_per_class(df, class_column='Class', save
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
     print(f"Min-max normalized plot saved to: {save_path}")
+
+
+def plot_robust_normalized_mean_feature_per_class(df, class_column='Class', save_path='robust_normalized_mean_feature_per_class.png', title='Robust Scaled Mean Feature per Class'):
+    """
+    Plots the mean robust scaled features per class from a DataFrame.
+
+    Args:
+        df (pd.DataFrame): Input dataframe containing robust normalized features and a class column.
+        class_column (str): Name of the column containing class labels.
+        save_path (str): Path to save the plot.
+        title (str): Plot title.
+    """
+    peak_cols = [col for col in df.columns if col.startswith('Peak')]
+    mean_per_class = df.groupby(class_column)[peak_cols].mean()
+
+    x = np.arange(1, len(peak_cols) + 1)
+
+    plt.figure(figsize=(12, 6))
+    for class_label, row in mean_per_class.iterrows():
+        plt.plot(x, row.values, label=f'Class {int(class_label)}', marker='o', markersize=3)
+
+    plt.title(title)
+    plt.xlabel('Peak Index (1–32)')
+    plt.ylabel('Robust Scaled Value (median-centered, MAD-scaled)')
+    plt.legend()
+    plt.grid(True, alpha=0.7)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"Robust scaled plot saved to: {save_path}")
+
+
+def plot_peak_to_peak_normalized_mean_feature_per_class(df, class_column='Class', save_path='peak_to_peak_normalized_mean_feature_per_class.png', title='Peak-to-Peak Normalized Mean Feature per Class'):
+    """
+    Plots the mean peak-to-peak normalized features per class from a DataFrame.
+
+    Args:
+        df (pd.DataFrame): Input dataframe containing peak-to-peak normalized features and a class column.
+        class_column (str): Name of the column containing class labels.
+        save_path (str): Path to save the plot.
+        title (str): Plot title.
+    """
+    peak_cols = [col for col in df.columns if col.startswith('Peak')]
+    mean_per_class = df.groupby(class_column)[peak_cols].mean()
+
+    x = np.arange(1, len(peak_cols) + 1)
+
+    plt.figure(figsize=(12, 6))
+    for class_label, row in mean_per_class.iterrows():
+        plt.plot(x, row.values, label=f'Class {int(class_label)}', marker='o', markersize=3)
+
+    plt.title(title)
+    plt.xlabel('Peak Index (1–32)')
+    plt.ylabel('Peak-to-Peak Normalized Value (x / range)')
+    plt.legend()
+    plt.grid(True, alpha=0.7)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"Peak-to-peak normalized plot saved to: {save_path}")
+
 
 def plot_conf_matrix(conf_matrix, label_encoder, model_name):
     plt.figure()
@@ -197,18 +262,9 @@ def plot_denoised_mean_feature_per_class_before_classifier(X_tensor, y_tensor, s
         if 'denoised' in save_path or any(norm in save_path for norm in ['normalized', 'minmax', 'raw']):
             path_parts = save_path.split('/')
             filename = path_parts[-1]
-            # Extract normalization type from filename
-            if 'minmax_normalized' in filename:
-                norm_type = 'minmax_normalized'
-            elif 'normalized' in filename:
-                norm_type = 'normalized'
-            elif 'raw' in filename:
-                norm_type = 'raw'
-            else:
-                norm_type = 'default'
             
             # Create new save path with normalization-specific directory
-            save_path = f'out/{norm_type}/{filename}'
+            save_path = f'out/{norm_name}/{filename}'
     
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
