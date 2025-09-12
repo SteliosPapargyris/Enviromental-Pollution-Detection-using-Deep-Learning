@@ -14,7 +14,8 @@ print("Loading and preprocessing test data...")
 # Test configuration (can be overridden if needed)
 CURRENT_STATS_SOURCE = 'compute'  # 'compute' or 'json'
 CURRENT_STATS_PATH = stats_path  # Only used if CURRENT_STATS_SOURCE = 'json'
-NORMALIZE_TARGET_CLASS = False
+# For robust normalization, always normalize ALL classes including Class 4
+NORMALIZE_TARGET_CLASS = True
 
 # Load test data with selected normalization
 X_test, y_test, label_encoder = load_and_preprocess_test_data(

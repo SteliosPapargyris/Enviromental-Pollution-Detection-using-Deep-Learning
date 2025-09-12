@@ -38,39 +38,20 @@ python apply_normalization.py && python train_autoencoder.py && python train_cla
 ## 📢 Release Notes
 
 ### 🚀 Upcoming Changes
-- Normalize by dividing with the max of every peak
-- Take **ideas** from other **papers** (for let's say autoencoder -> xeR^32 -> x anhkei R^32
-- Start with describing the dataset (ask for the paper)
-- Auto Encoder describe z latent space, we use it in the decoder (figure) mathematically and visually + Normalization in input (like callibration), based on class 4 tihs mathematical expression (mean and std of class 4 to other classes in the same chip)
-- After that just say that i have this classifier
-- In proposed Method i should be as abstract as possible. And then in a different chapter more detail to every
-- What is the proposed method -> encoder-decoder, after that Global Local Model (Feature Extraction)
-- I should compare "same" models with same features not a model that has a temperature feature with one that does not
-- Proposed Method -> auto encoder with 32 features --> % accuracy
-- CNN --> % accuracy
-- etc
-- Proposed Method -> auto encoder with 33 features --> % accuracy (bigger accuracy with temperature) not compare with cnn or global and local with 32 features
-- In a **table** i should compare those different methods (must be clear)
-- Class 4 Mean and subtract
-other (not class 4) classes
-with this mean of class 4
-100.0% 48.12% (It's a part of autoencoder implementation so it must be into thesis)
-- Normalization in plots not with numbers. Numbers only for our results
 
-- Write the thesis
+- Normalization to all samples not excluding Class 4 and in test set i know only the statistics (e.g mean and std) not the class of the samples
 
-For future:
-        self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm1d(64)
-        self.pool2 = nn.MaxPool1d(2)
-        # Lout = (16 + 2 - 3)/1 + 1 --> Lout = 16
-        # pooling --> 8
+- Few shot learning (fine tune, started incrementally from 10%) + table if not do normalization, if not do autoencoder, if not do both etc -> see the improvement of the accuracy
 
-        # input length --> 32
-        # After pool1: 16, After pool2: 8, 64 channels
-        self.flattened_size = 64 * 8  # update based on input size
-pool2: from 8 to 6 
-Drop encoder to 8 bits.
+- t sne algorithm to output of decoder and latent space to see if they are being διαχωριζονται
+
+no chip 1,2,3,4,5 all in one and then normalization, autoencoder and inference
+Normalization 
+One autoencoder for every chip and then target for autoencoder will be the sample of T= (e.g = 25C) 
+One more autoencoder that will take the above outputed data to one baseline chip (initial before 1st autoencoder for T=25C) (selection is up to me) 
+and then classifier 
+
+In test set of the initial splitting of dataset (70-20-10)
 
 ### ✅ Implemented
 

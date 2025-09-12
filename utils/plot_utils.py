@@ -208,25 +208,6 @@ def plot_normalized_train_mean_feature_per_class(df, class_column='match_Class',
 
     # Compute mean for each class
     mean_per_class = df.groupby(class_column)[peak_cols].mean()
-
-    # Only apply directory restructuring if path doesn't already have a normalization directory
-    if not any(f'out/{norm}/' in save_path for norm in ['class_based_mean_std_normalized', 'minmax_normalized', 'normalized', 'raw']):
-        # Extract normalization type from save_path and create directory structure
-        if 'normalized' in save_path or 'minmax' in save_path or 'raw' in save_path:
-            path_parts = save_path.split('/')
-            filename = path_parts[-1]
-            # Extract normalization type from filename
-            if filename.startswith('minmax_normalized'):
-                norm_type = 'minmax_normalized'
-            elif filename.startswith('normalized'):
-                norm_type = 'normalized'
-            elif filename.startswith('raw'):
-                norm_type = 'raw'
-            else:
-                norm_type = 'default'
-            
-            # Create new save path with normalization-specific directory
-            save_path = f'out/{norm_type}/{filename}'
     
     # Ensure output directory exists
     os.makedirs(os.path.dirname(save_path), exist_ok=True)

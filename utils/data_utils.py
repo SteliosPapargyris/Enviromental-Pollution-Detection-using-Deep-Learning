@@ -279,10 +279,11 @@ def compute_robust_class_4_then_normalize(
         }
         stats_per_chip.append(chip_stats)
 
-        # Robust normalize other-class rows in same chip: (x - median) / MAD
-        other_mask = (df_copy[chip_column] == chip) & (df_copy[class_column] != target_class)
-        df_copy.loc[other_mask, columns_to_normalize] = (
-            df_copy.loc[other_mask, columns_to_normalize] - median_target
+        # Robust normalize ALL samples in same chip: (x - median) / MAD
+        # This includes both target class and other classes
+        chip_mask = (df_copy[chip_column] == chip)
+        df_copy.loc[chip_mask, columns_to_normalize] = (
+            df_copy.loc[chip_mask, columns_to_normalize] - median_target
         ) / mad_target
 
     # Compute overall statistics
@@ -728,9 +729,10 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
             
         elif normalization_type == 'class_based_robust':
             # Class-based robust scaling normalization (using target class statistics)
+            # For robust scaling, always normalize ALL classes including Class 4
             _apply_class_based_robust_normalization(X, y, df, target_class_encoded, normalization_columns, 
-                                                   stats_source, stats_path, normalize_target_class)
-            print(f"Applied class-based robust scaling normalization (target class normalization: {normalize_target_class})")
+                                                   stats_source, stats_path, normalize_target_class=True)
+            print(f"Applied class-based robust scaling normalization (all classes normalized using Class 4 statistics)")
             
         elif normalization_type == 'class_based_peak_to_peak':
             # Class-based peak-to-peak normalization (using target class statistics)
@@ -974,41 +976,30 @@ def _normalize_features(X, y, target_class_encoded, peak_columns,
 
 
 def _normalize_features_robust(X, y, target_class_encoded, peak_columns, 
-                              peak_median, peak_mad, temp_median, temp_mad, normalize_target_class=False):
+                              peak_median, peak_mad, temp_median, temp_mad, normalize_target_class=True):
     """
     Helper function to apply class-based robust scaling normalization to features.
+    Robust scaling normalizes ALL classes using Class 4 statistics.
     
     Args:
         X (pd.DataFrame): Feature matrix to normalize
-        y (pd.Series): Labels
-        target_class_encoded (int): Encoded target class value
+        y (pd.Series): Labels (not used in robust scaling as we normalize all)
+        target_class_encoded (int): Target class value (not used as we normalize all)
         peak_columns (list): List of peak column names
         peak_median, peak_mad (np.array): Median and MAD for peak normalization
         temp_median, temp_mad (float): Median and MAD for temperature normalization
-        normalize_target_class (bool): Whether to normalize target class features
+        normalize_target_class (bool): Always True for robust scaling
     """
-    # Determine which classes to normalize
-    if normalize_target_class:
-        # Normalize all classes
-        normalize_mask = pd.Series([True] * len(y), index=y.index)
-    else:
-        # Normalize only non-target classes (original behavior)
-        normalize_mask = (y != target_class_encoded)
+    # For robust scaling, normalize ALL samples (using Class 4 statistics)
+    # This ensures all samples including Class 4 are normalized
     
-    if peak_columns and normalize_mask.sum() > 0:
-        # Avoid division by zero - MAD is already handled in the calling function
-        X.loc[normalize_mask, peak_columns] = (
-            X.loc[normalize_mask, peak_columns] - peak_median
-        ) / peak_mad
+    if peak_columns:
+        # Apply robust normalization: (x - median) / MAD
+        X[peak_columns] = (X[peak_columns] - peak_median) / peak_mad
     
-    # Normalize temperature based on normalize_target_class setting
+    # Normalize temperature for all samples
     if 'Temperature' in X.columns:
-        if normalize_target_class:
-            # Normalize temperature for all classes
-            X['Temperature'] = (X['Temperature'] - temp_median) / temp_mad
-        else:
-            # Normalize temperature only for non-target classes
-            X.loc[normalize_mask, 'Temperature'] = (X.loc[normalize_mask, 'Temperature'] - temp_median) / temp_mad
+        X['Temperature'] = (X['Temperature'] - temp_median) / temp_mad
 
 
 def _normalize_features_peak_to_peak(X, y, target_class_encoded, peak_columns, 
