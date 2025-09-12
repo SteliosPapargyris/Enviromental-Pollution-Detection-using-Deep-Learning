@@ -81,10 +81,11 @@ def compute_mean_class_4_then_subtract(
         }
         stats_per_chip.append(chip_stats)
 
-        # Normalize other-class rows in same chip
-        other_mask = (df_copy[chip_column] == chip) & (df_copy[class_column] != target_class)
-        df_copy.loc[other_mask, columns_to_normalize] = (
-            df_copy.loc[other_mask, columns_to_normalize] - mean_target
+        # Normalize ALL samples in same chip: (x - mean) / std
+        # This includes both target class and other classes
+        chip_mask = (df_copy[chip_column] == chip)
+        df_copy.loc[chip_mask, columns_to_normalize] = (
+            df_copy.loc[chip_mask, columns_to_normalize] - mean_target
         ) / std_target
 
     # Compute overall statistics
@@ -177,10 +178,11 @@ def compute_minmax_class_4_then_normalize(
         }
         stats_per_chip.append(chip_stats)
 
-        # Min-max normalize other-class rows in same chip: (x - min) / (max - min)
-        other_mask = (df_copy[chip_column] == chip) & (df_copy[class_column] != target_class)
-        df_copy.loc[other_mask, columns_to_normalize] = (
-            df_copy.loc[other_mask, columns_to_normalize] - min_target
+        # Min-max normalize ALL samples in same chip: (x - min) / (max - min)
+        # This includes both target class and other classes
+        chip_mask = (df_copy[chip_column] == chip)
+        df_copy.loc[chip_mask, columns_to_normalize] = (
+            df_copy.loc[chip_mask, columns_to_normalize] - min_target
         ) / range_target
 
     # Compute overall statistics
@@ -706,10 +708,11 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
     # Apply normalization based on the chosen strategy
     if apply_normalization:
         if normalization_type == 'class_based':
-            # Original class-based normalization
+            # Class-based mean/std normalization (using target class statistics)
+            # For mean/std scaling, always normalize ALL classes including Class 4
             _apply_class_based_normalization(X, y, df, target_class_encoded, normalization_columns, 
-                                           stats_source, stats_path, normalize_target_class)
-            print(f"Applied class-based normalization (target class normalization: {normalize_target_class})")
+                                           stats_source, stats_path, normalize_target_class=True)
+            print(f"Applied class-based mean/std normalization (all classes normalized using Class 4 statistics)")
             
         elif normalization_type == 'standard':
             # Standard z-score normalization
@@ -723,9 +726,10 @@ def load_and_preprocess_test_data(file_path, fraction=1, random_seed=42,
             
         elif normalization_type == 'class_based_minmax':
             # Class-based min-max normalization (using target class statistics)
+            # For min-max scaling, always normalize ALL classes including Class 4
             _apply_class_based_minmax_normalization(X, y, df, target_class_encoded, normalization_columns, 
-                                                  stats_source, stats_path, normalize_target_class)
-            print(f"Applied class-based min-max normalization (target class normalization: {normalize_target_class})")
+                                                  stats_source, stats_path, normalize_target_class=True)
+            print(f"Applied class-based min-max normalization (all classes normalized using Class 4 statistics)")
             
         elif normalization_type == 'class_based_robust':
             # Class-based robust scaling normalization (using target class statistics)
@@ -894,85 +898,63 @@ def _apply_class_based_minmax_normalization(X, y, df, target_class_encoded, norm
 
 
 def _normalize_features_minmax(X, y, target_class_encoded, peak_columns, 
-                              peak_min, peak_max, temp_min, temp_max, normalize_target_class=False):
+                              peak_min, peak_max, temp_min, temp_max, normalize_target_class=True):
     """
     Helper function to apply class-based min-max normalization to features.
+    Min-max scaling normalizes ALL classes using Class 4 statistics.
     
     Args:
         X (pd.DataFrame): Feature matrix to normalize
-        y (pd.Series): Labels
-        target_class_encoded (int): Encoded target class value
+        y (pd.Series): Labels (not used in min-max scaling as we normalize all)
+        target_class_encoded (int): Target class value (not used as we normalize all)
         peak_columns (list): List of peak column names
         peak_min, peak_max (np.array): Min and max for peak normalization
         temp_min, temp_max (float): Min and max for temperature normalization
-        normalize_target_class (bool): Whether to normalize target class features
+        normalize_target_class (bool): Always True for min-max scaling
     """
-    # Determine which classes to normalize
-    if normalize_target_class:
-        # Normalize all classes
-        normalize_mask = pd.Series([True] * len(y), index=y.index)
-    else:
-        # Normalize only non-target classes (original behavior)
-        normalize_mask = (y != target_class_encoded)
+    # For min-max scaling, normalize ALL samples (using Class 4 statistics)
+    # This ensures all samples including Class 4 are normalized
     
-    if peak_columns and normalize_mask.sum() > 0:
+    if peak_columns:
         # Avoid division by zero
         peak_range = peak_max - peak_min
         peak_range_safe = np.where(peak_range == 0, 1, peak_range)
-        X.loc[normalize_mask, peak_columns] = (
-            X.loc[normalize_mask, peak_columns] - peak_min
-        ) / peak_range_safe
+        X[peak_columns] = (X[peak_columns] - peak_min) / peak_range_safe
     
-    # Normalize temperature based on normalize_target_class setting
+    # Normalize temperature for all samples
     if 'Temperature' in X.columns:
         temp_range = temp_max - temp_min
         temp_range_safe = temp_range if temp_range != 0 else 1
-        if normalize_target_class:
-            # Normalize temperature for all classes
-            X['Temperature'] = (X['Temperature'] - temp_min) / temp_range_safe
-        else:
-            # Normalize temperature only for non-target classes
-            X.loc[normalize_mask, 'Temperature'] = (X.loc[normalize_mask, 'Temperature'] - temp_min) / temp_range_safe
+        X['Temperature'] = (X['Temperature'] - temp_min) / temp_range_safe
 
 
 def _normalize_features(X, y, target_class_encoded, peak_columns, 
-                       peak_mean, peak_std, temp_mean, temp_std, normalize_target_class=False):
+                       peak_mean, peak_std, temp_mean, temp_std, normalize_target_class=True):
     """
     Helper function to apply class-based normalization to features.
+    Mean/std scaling normalizes ALL classes using Class 4 statistics.
     
     Args:
         X (pd.DataFrame): Feature matrix to normalize
-        y (pd.Series): Labels
-        target_class_encoded (int): Encoded target class value
+        y (pd.Series): Labels (not used in mean/std scaling as we normalize all)
+        target_class_encoded (int): Target class value (not used as we normalize all)
         peak_columns (list): List of peak column names
         peak_mean, peak_std (np.array): Mean and std for peak normalization
         temp_mean, temp_std (float): Mean and std for temperature normalization
-        normalize_target_class (bool): Whether to normalize target class features
+        normalize_target_class (bool): Always True for mean/std scaling
     """
-    # Determine which classes to normalize
-    if normalize_target_class:
-        # Normalize all classes
-        normalize_mask = pd.Series([True] * len(y), index=y.index)
-    else:
-        # Normalize only non-target classes (original behavior)
-        normalize_mask = (y != target_class_encoded)
+    # For mean/std scaling, normalize ALL samples (using Class 4 statistics)
+    # This ensures all samples including Class 4 are normalized
     
-    if peak_columns and normalize_mask.sum() > 0:
+    if peak_columns:
         # Avoid division by zero
         peak_std_safe = np.where(peak_std == 0, 1, peak_std)
-        X.loc[normalize_mask, peak_columns] = (
-            X.loc[normalize_mask, peak_columns] - peak_mean
-        ) / peak_std_safe
+        X[peak_columns] = (X[peak_columns] - peak_mean) / peak_std_safe
     
-    # Normalize temperature based on normalize_target_class setting
+    # Normalize temperature for all samples
     if 'Temperature' in X.columns:
         temp_std_safe = temp_std if temp_std != 0 else 1
-        if normalize_target_class:
-            # Normalize temperature for all classes
-            X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std_safe
-        else:
-            # Normalize temperature only for non-target classes
-            X.loc[normalize_mask, 'Temperature'] = (X.loc[normalize_mask, 'Temperature'] - temp_mean) / temp_std_safe
+        X['Temperature'] = (X['Temperature'] - temp_mean) / temp_std_safe
 
 
 def _normalize_features_robust(X, y, target_class_encoded, peak_columns, 

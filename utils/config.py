@@ -27,7 +27,7 @@ class_column = "Class"
 normalization_technique = "standardscaler"
 target_class = 4
 num_chip_selection = 5
-base_path = f"data/out/normalized_robust"
+base_path = f"data/out/normalized"
 stats_path = f"data/fts_mzi_dataset/robust_normalization_statistics.json"
 # base_path = "/Users/steliospapargyris/Documents/MyProjects/data_thesis/no_normalization/5chips_old"
 # base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_{target_class}_of_every_chip/{num_chip_selection}chips_old"
@@ -77,4 +77,4 @@ NORMALIZATION_CONFIG = {
 # =============================================================================
 # ACTIVE NORMALIZATION METHOD - Change this to train/test with different methods
 # =============================================================================
-CURRENT_NORMALIZATION = 'class_based_robust'  # Change this to use different methods
+CURRENT_NORMALIZATION = 'class_based'  # Change this to use different methods
