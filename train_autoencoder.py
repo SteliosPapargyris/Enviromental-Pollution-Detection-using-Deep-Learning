@@ -8,11 +8,6 @@ from utils.config import *
 
 print("=== Autoencoder Training Pipeline Started ===")
 
-# Get normalization info for file naming
-norm_config = NORMALIZATION_CONFIG[CURRENT_NORMALIZATION]
-norm_name = norm_config['name']
-norm_description = norm_config['description']
-
 print(f"Training with normalization: {norm_description}")
 print(f"File naming suffix: {norm_name}")
 
@@ -22,12 +17,12 @@ df = dataset_creation(num_chips, baseline_chip=baseline_chip)
 plot_normalized_train_mean_feature_per_class(
     df,
     class_column='match_Class',
-    save_path=f"out/{norm_name}/{norm_name}_train_mean_feature_per_class.png",
+    save_path=f"out/{norm_name}/train_mean_feature_per_class.png",
     title=f'Train Mean Peaks per Class after {norm_description}'
 )
 
 # Load the shuffled dataset for the current chip
-X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_autoencoder(file_path=f"{current_path}/shuffled_dataset/merged.csv")
+X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_autoencoder(file_path=f"{current_path}/shuffled_dataset/merged.csv", finetune=False)
 
 # Create data loaders for raw data
 train_loader, val_loader, test_loader = tensor_dataset_autoencoder(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)

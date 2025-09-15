@@ -9,16 +9,11 @@ import torch.optim as optim
 
 print("=== Classifier Training Pipeline Started ===")
 
-# Get normalization info for file naming
-norm_config = NORMALIZATION_CONFIG[CURRENT_NORMALIZATION]
-norm_name = norm_config['name']
-norm_description = norm_config['description']
-
 print(f"Training classifier with normalization: {norm_description}")
 print(f"File naming suffix: {norm_name}")
 
 # Load the shuffled dataset for the current chip
-X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_classifier(file_path=f"{current_path}/shuffled_dataset/merged.csv")
+X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_classifier(file_path=f"{current_path}/shuffled_dataset/merged.csv", finetune=False)
 
 # Create data loaders for raw data
 train_loader, val_loader, test_loader = tensor_dataset_classifier(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)

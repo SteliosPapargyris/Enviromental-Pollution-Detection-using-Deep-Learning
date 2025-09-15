@@ -15,7 +15,7 @@ print("Loading and preprocessing test data...")
 CURRENT_STATS_SOURCE = 'compute'  # 'compute' or 'json'
 CURRENT_STATS_PATH = stats_path  # Only used if CURRENT_STATS_SOURCE = 'json'
 # For class-based normalizations, always normalize ALL classes including Class 4
-NORMALIZE_TARGET_CLASS = True if CURRENT_NORMALIZATION in ['class_based_robust', 'class_based_minmax', 'class_based'] else False
+NORMALIZE_TARGET_CLASS = True
 
 # Load test data with selected normalization
 X_test, y_test, label_encoder = load_and_preprocess_test_data(
@@ -28,11 +28,6 @@ X_test, y_test, label_encoder = load_and_preprocess_test_data(
     normalize_target_class=NORMALIZE_TARGET_CLASS
 )
 
-# Get normalization info for file naming
-norm_config = NORMALIZATION_CONFIG[CURRENT_NORMALIZATION]
-norm_name = norm_config['name']
-norm_description = norm_config['description']
-
 print(f"Applied normalization: {norm_description}")
 print(f"File naming suffix: {norm_name}")
 
@@ -42,7 +37,7 @@ print(f"Test data loaded: {len(X_test)} samples, {len(X_test.columns)} features"
 plot_normalized_test_mean_feature_per_class(
     X_df=X_test,
     y_series=y_test,
-    save_path=f'out/{norm_name}/{norm_name}_test_mean_feature_per_class.png',
+    save_path=f'out/{norm_name}/test_mean_feature_per_class.png',
     title=f'{norm_description} Test Mean Feature per Class'
 )
 

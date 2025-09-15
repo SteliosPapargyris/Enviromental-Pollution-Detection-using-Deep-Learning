@@ -4,9 +4,6 @@ import os
 import numpy as np
 from utils.config import *
 
-norm_config = NORMALIZATION_CONFIG[CURRENT_NORMALIZATION]
-norm_name = norm_config['name']
-
 def plot_raw_mean_feature_per_class(df, class_column='Class', save_path='raw_mean_feature_per_class.png', title='Raw Mean Feature per Class', log_y=False):
     """
     Plots the mean raw features per class from a DataFrame.
@@ -130,7 +127,7 @@ def plot_peak_to_peak_normalized_mean_feature_per_class(df, class_column='Class'
     print(f"Peak-to-peak normalized plot saved to: {save_path}")
 
 
-def plot_conf_matrix(conf_matrix, label_encoder, model_name):
+def plot_conf_matrix(conf_matrix, label_encoder, model_name, output_dir=None):
     plt.figure()
     ax = sns.heatmap(
         conf_matrix,
@@ -144,21 +141,10 @@ def plot_conf_matrix(conf_matrix, label_encoder, model_name):
     ax.set_yticklabels(label_encoder.classes_, rotation=0)
     plt.title(f'Confusion Matrix_{model_name}')
     plt.tight_layout()
-    # Create normalization-specific directory structure
-    # Extract norm type from model name (e.g., "classifier_minmax_normalized_test" -> "minmax_normalized")
-    name_parts = model_name.split('_')
-    if len(name_parts) >= 3:
-        # Find normalization type by excluding known prefixes and suffixes
-        norm_parts = name_parts[1:]  # Remove first part (classifier/autoencoder)
-        # Remove common suffixes
-        if norm_parts[-1] in ['training', 'validation', 'test', 'eval', 'train']:
-            norm_parts = norm_parts[:-1]
-        if norm_parts[-1] in ['training', 'validation', 'test', 'eval', 'train']:  # Check again for double suffixes
-            norm_parts = norm_parts[:-1]
-        norm_type = '_'.join(norm_parts)
-    else:
-        norm_type = 'default'
-    output_dir = f'out/{norm_type}'
+
+    # Use provided output directory or default to current normalization configuration
+    if output_dir is None:
+        output_dir = f'out/{norm_name}'
     os.makedirs(output_dir, exist_ok=True)
     plt.savefig(f"{output_dir}/confusion_matrix_{model_name}.jpg")
     plt.show()
@@ -174,21 +160,9 @@ def plot_train_and_val_losses(training_losses, validation_losses, model_name):
     plt.ylabel('Loss')
     plt.legend()
     plt.grid(True)
-    # Create normalization-specific directory structure
-    # Extract norm type from model name (e.g., "autoencoder_minmax_normalized_train" -> "minmax_normalized")
-    name_parts = model_name.split('_')
-    if len(name_parts) >= 3:
-        # Find normalization type by excluding known prefixes and suffixes
-        norm_parts = name_parts[1:]  # Remove first part (classifier/autoencoder)
-        # Remove common suffixes
-        if norm_parts[-1] in ['training', 'validation', 'test', 'eval', 'train']:
-            norm_parts = norm_parts[:-1]
-        if norm_parts[-1] in ['training', 'validation', 'test', 'eval', 'train']:  # Check again for double suffixes
-            norm_parts = norm_parts[:-1]
-        norm_type = '_'.join(norm_parts)
-    else:
-        norm_type = 'default'
-    output_dir = f'out/{norm_type}'
+
+    # Use current normalization configuration for output directory
+    output_dir = f'out/{norm_name}'
     os.makedirs(output_dir, exist_ok=True)
     plt.savefig(f'{output_dir}/train_and_val_loss_{model_name}.png')
     plt.show()
@@ -280,7 +254,7 @@ def plot_denoised_mean_feature_per_class_before_classifier(X_tensor, y_tensor, s
         peaks_only_path = save_path.replace('.png', '_peaks_only.png')
         _create_peaks_only_plot(X_tensor, y_tensor, peaks_only_path, f"{title} (Peaks 1-32 only)")
 
-def plot_raw_test_mean_feature_per_class(df, class_column='Class', save_path='out/raw_test_mean_feature_per_class.png', title='Raw Test Mean Feature per Class'):
+def plot_raw_test_mean_feature_per_class(df, class_column='Class', save_path='out/raw/raw_test_mean_feature_per_class.png', title='Raw Test Mean Feature per Class'):
     """
     Plots mean raw features per class for the test set.
 
@@ -290,23 +264,6 @@ def plot_raw_test_mean_feature_per_class(df, class_column='Class', save_path='ou
         save_path (str): Path to save the figure.
         title (str): Title of the plot.
     """
-    # Extract normalization type from save_path and create directory structure  
-    if any(norm in save_path for norm in ['test', 'normalized', 'minmax', 'raw']):
-        path_parts = save_path.split('/')
-        filename = path_parts[-1]
-        # Extract normalization type from filename
-        if 'minmax_normalized' in filename:
-            norm_type = 'minmax_normalized'
-        elif 'normalized' in filename:
-            norm_type = 'normalized'
-        elif 'raw' in filename:
-            norm_type = 'raw'
-        else:
-            norm_type = 'default'
-        
-        # Create new save path with normalization-specific directory
-        save_path = f'out/{norm_type}/{filename}'
-    
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     # Identify peak columns
@@ -339,27 +296,7 @@ def plot_normalized_test_mean_feature_per_class(X_df, y_series, save_path='out/n
         save_path (str): Path to save the figure.
         title (str): Plot title.
     """
-    # Only apply directory restructuring if path doesn't already have a normalization directory
-    if not any(f'out/{norm}/' in save_path for norm in ['class_based_mean_std_normalized', 'minmax_normalized', 'normalized', 'raw']):
-        # Extract normalization type from save_path and create directory structure
-        if any(norm in save_path for norm in ['test', 'normalized', 'minmax', 'raw']):
-            path_parts = save_path.split('/')
-            filename = path_parts[-1]
-            # Extract normalization type from filename
-            if 'minmax_normalized' in filename:
-                norm_type = 'minmax_normalized'
-            elif 'normalized' in filename:
-                norm_type = 'normalized'
-            elif 'raw' in filename:
-                norm_type = 'raw'
-            else:
-                norm_type = 'default'
-            
-            # Create new save path with normalization-specific directory
-            save_path = f'out/{norm_type}/{filename}'
     
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
     # Keep only peak columns
     peak_cols = [col for col in X_df.columns if col.startswith('Peak') and col != 'Temperature']
     X_df = X_df[peak_cols]
@@ -392,26 +329,6 @@ def plot_denoised_test_mean_feature_per_class(X_tensor, y_tensor, save_path='out
         save_path (str): Path to save the figure.
         title (str): Plot title.
     """
-    # Only apply directory restructuring if path doesn't already have a normalization directory
-    if not any(f'out/{norm}/' in save_path for norm in ['class_based_mean_std_normalized', 'minmax_normalized', 'normalized', 'raw']):
-        # Extract normalization type from save_path and create directory structure
-        if any(norm in save_path for norm in ['denoised', 'test', 'normalized', 'minmax', 'raw']):
-            path_parts = save_path.split('/')
-            filename = path_parts[-1]
-            # Extract normalization type from filename
-            if 'minmax_normalized' in filename:
-                norm_type = 'minmax_normalized'
-            elif 'normalized' in filename:
-                norm_type = 'normalized'
-            elif 'raw' in filename:
-                norm_type = 'raw'
-            else:
-                norm_type = 'default'
-            
-            # Create new save path with normalization-specific directory
-            save_path = f'out/{norm_type}/{filename}'
-    
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     if X_tensor.dim() == 3 and X_tensor.shape[1] == 1:
         X_tensor = X_tensor.squeeze(1)  # Shape becomes (N, 32)

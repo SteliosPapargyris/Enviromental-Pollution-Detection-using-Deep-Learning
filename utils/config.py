@@ -2,10 +2,12 @@ import matplotlib
 import random
 import torch
 import numpy as np
+import warnings
+from utils.path_utils import get_paths_for_normalization
 
-# Hyperparameters
-seed = 42
-batch_size = 32
+CURRENT_NORMALIZATION = 'class_based_robust'  # Change this to use different methods
+num_percentage_of_test_df = 0.9  # Use 10% of test data for merging
+base_path, stats_path = get_paths_for_normalization(CURRENT_NORMALIZATION)
 
 # Recommended settings for autoencoder
 autoencoder_patience = 7          # Learning rate patience
@@ -15,7 +17,9 @@ autoencoder_early_stopping = 15   # Early stopping patience
 classifier_patience = 3
 classifier_early_stopping = 6
 
-early_stopping_max_number = 6
+# Hyperparameters
+seed = 42
+batch_size = 32
 learning_rate = 1e-3
 num_epochs = 500
 num_classes = 4
@@ -27,46 +31,27 @@ class_column = "Class"
 normalization_technique = "standardscaler"
 target_class = 4
 num_chip_selection = 5
-base_path = f"data/out/normalized"
-stats_path = f"data/fts_mzi_dataset/robust_normalization_statistics.json"
-# base_path = "/Users/steliospapargyris/Documents/MyProjects/data_thesis/no_normalization/5chips_old"
-# base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_{target_class}_of_every_chip/{num_chip_selection}chips_old"
-# base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_{target_class}_of_every_chip/{num_chip_selection}chips_no_noise"
-# base_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_{target_class}_of_every_chip/{num_chip_selection}chips_20percent_noise"
-# stats_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_{target_class}_of_every_chip/class_{target_class}_mean_and_std/fts_mzi_dataset/statistics/class_{target_class}_normalization_stats.json"
-# col_stats_path = f"/Users/steliospapargyris/Documents/MyProjects/data_thesis/mean_and_std_of_class_{target_class}_of_every_chip/class_{target_class}_mean_and_std/fts_mzi_dataset/class_{target_class}_per_chip_stats.csv"
 current_path = f"{base_path}"
 test_file_path = f'{base_path}/{chip_exclude}.csv'
 matplotlib.use('Agg')  # Use a non-interactive backend
 torch.manual_seed(seed), torch.cuda.manual_seed_all(seed), np.random.seed(seed), random.seed(seed)
 torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+warnings.filterwarnings("ignore")
 
 # Normalization configuration
 NORMALIZATION_CONFIG = {
-    'class_based': {
+    'class_based_mean_std': {
         'name': 'class_based_mean_std_normalized',
         'description': 'Class-4 Mean/Std Normalization'
     },
     'class_based_minmax': {
-        'name': 'minmax_normalized', 
+        'name': 'minmax_normalized',
         'description': 'Class-4 Min-Max Normalization'
     },
     'class_based_robust': {
         'name': 'robust_normalized',
         'description': 'Class-4 Robust Scaling Normalization'
-    },
-    'class_based_peak_to_peak': {
-        'name': 'peak_to_peak_normalized',
-        'description': 'Class-4 Peak-to-Peak Normalization'
-    },
-    'standard': {
-        'name': 'standard_normalized',
-        'description': 'Standard Z-Score Normalization'
-    },
-    'minmax': {
-        'name': 'sklearn_minmax_normalized',
-        'description': 'Sklearn Min-Max Normalization'
     },
     'none': {
         'name': 'raw',
@@ -74,7 +59,7 @@ NORMALIZATION_CONFIG = {
     }
 }
 
-# =============================================================================
-# ACTIVE NORMALIZATION METHOD - Change this to train/test with different methods
-# =============================================================================
-CURRENT_NORMALIZATION = 'class_based'  # Change this to use different methods
+# Current normalization configuration - available everywhere
+norm_config = NORMALIZATION_CONFIG[CURRENT_NORMALIZATION]
+norm_name = norm_config['name']
+norm_description = norm_config['description']
