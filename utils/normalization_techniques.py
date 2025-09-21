@@ -26,7 +26,6 @@ def save_statistics_json(mean_data, std_data, columns, base_path):
 
 def compute_mean_class_4_then_subtract(
     df,
-    chip_exclude,
     class_column,
     chip_column,
     columns_to_normalize,
@@ -54,8 +53,6 @@ def compute_mean_class_4_then_subtract(
     stats_per_chip = []
 
     for chip, chip_group in df_copy.groupby(chip_column):
-        if chip == chip_exclude:
-            continue
 
         target_rows = chip_group[chip_group[class_column] == target_class]
         if target_rows.empty:
@@ -94,7 +91,6 @@ def compute_mean_class_4_then_subtract(
                 "std": std_class_4_overall.tolist(),
                 "feature_names": columns_to_normalize,
                 "target_class": target_class,
-                "excluded_chip": chip_exclude
             },
             "per_chip_statistics": stats_per_chip,
             "metadata": {
@@ -117,7 +113,6 @@ def compute_mean_class_4_then_subtract(
 
 def compute_minmax_class_4_then_normalize(
     df,
-    chip_exclude,
     class_column,
     chip_column,
     columns_to_normalize,
@@ -130,7 +125,6 @@ def compute_minmax_class_4_then_normalize(
 
     Parameters:
         df (pd.DataFrame): Input DataFrame.
-        chip_exclude: Chip to exclude from processing.
         class_column (str): Column name for class labels.
         chip_column (str): Column name for chip IDs.
         columns_to_normalize (list): Names of feature columns to normalize.
@@ -146,8 +140,6 @@ def compute_minmax_class_4_then_normalize(
     stats_per_chip = []
 
     for chip, chip_group in df_copy.groupby(chip_column):
-        if chip == chip_exclude:
-            continue
 
         target_rows = chip_group[chip_group[class_column] == target_class]
         if target_rows.empty:
@@ -191,7 +183,6 @@ def compute_minmax_class_4_then_normalize(
                 "max": max_class_4_overall.tolist(),
                 "feature_names": columns_to_normalize,
                 "target_class": target_class,
-                "excluded_chip": chip_exclude
             },
             "per_chip_statistics": stats_per_chip,
             "metadata": {
@@ -215,7 +206,6 @@ def compute_minmax_class_4_then_normalize(
 
 def compute_robust_class_4_then_normalize(
     df,
-    chip_exclude,
     class_column,
     chip_column,
     columns_to_normalize,
@@ -231,7 +221,6 @@ def compute_robust_class_4_then_normalize(
 
     Parameters:
         df (pd.DataFrame): Input DataFrame.
-        chip_exclude: Chip to exclude from processing.
         class_column (str): Column name for class labels.
         chip_column (str): Column name for chip IDs.
         columns_to_normalize (list): Names of feature columns to normalize.
@@ -247,8 +236,6 @@ def compute_robust_class_4_then_normalize(
     stats_per_chip = []
 
     for chip, chip_group in df_copy.groupby(chip_column):
-        if chip == chip_exclude:
-            continue
 
         target_rows = chip_group[chip_group[class_column] == target_class]
         if target_rows.empty:
@@ -294,7 +281,6 @@ def compute_robust_class_4_then_normalize(
                 "mad": mad_class_4_overall.tolist(),
                 "feature_names": columns_to_normalize,
                 "target_class": target_class,
-                "excluded_chip": chip_exclude
             },
             "per_chip_statistics": stats_per_chip,
             "metadata": {
@@ -340,11 +326,11 @@ def _apply_class_based_robust_normalization(X, y, df, target_class_encoded, norm
         
         # Handle temperature stats
         if 'Temperature' in X.columns:
-            normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+            normalization_mask = df['Class'] == target_class_encoded
             normalization_data = df[normalization_mask]
             
             if normalization_data.empty:
-                raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+                raise ValueError(f"No data found for target class {target_class}")
             
             temp_median = normalization_data['Temperature'].median()
             temp_mad = np.median(np.abs(normalization_data['Temperature'] - temp_median))
@@ -352,11 +338,11 @@ def _apply_class_based_robust_normalization(X, y, df, target_class_encoded, norm
         
     elif stats_source == 'compute':
         # Calculate normalization statistics from data
-        normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+        normalization_mask = df['Class'] == target_class_encoded
         normalization_data = df[normalization_mask]
         
         if normalization_data.empty:
-            raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+            raise ValueError(f"No data found for target class {target_class}")
         
         # Separate peak columns and temperature columns for consistent calculation
         peak_columns = [col for col in normalization_columns if col.startswith('Peak')]
@@ -399,22 +385,22 @@ def _apply_class_based_normalization(X, y, df, target_class_encoded, normalizati
         
         # Handle temperature stats
         if 'Temperature' in X.columns:
-            normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+            normalization_mask = df['Class'] == target_class_encoded
             normalization_data = df[normalization_mask]
             
             if normalization_data.empty:
-                raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+                raise ValueError(f"No data found for target class {target_class}")
             
             temp_mean = normalization_data['Temperature'].mean()
             temp_std = normalization_data['Temperature'].std()
         
     elif stats_source == 'compute':
         # Calculate normalization statistics from data
-        normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+        normalization_mask = df['Class'] == target_class_encoded
         normalization_data = df[normalization_mask]
         
         if normalization_data.empty:
-            raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+            raise ValueError(f"No data found for target class {target_class}")
         
         # Separate peak columns and temperature columns for consistent calculation
         peak_columns = [col for col in normalization_columns if col.startswith('Peak')]
@@ -487,22 +473,22 @@ def _apply_class_based_minmax_normalization(X, y, df, target_class_encoded, norm
         
         # Handle temperature stats
         if 'Temperature' in X.columns:
-            normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+            normalization_mask = df['Class'] == target_class_encoded
             normalization_data = df[normalization_mask]
             
             if normalization_data.empty:
-                raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+                raise ValueError(f"No data found for target class {target_class}")
             
             temp_min = normalization_data['Temperature'].min()
             temp_max = normalization_data['Temperature'].max()
         
     elif stats_source == 'compute':
         # Calculate normalization statistics from data
-        normalization_mask = (df['Chip'] == chip_exclude) & (df['Class'] == target_class_encoded)
+        normalization_mask = df['Class'] == target_class_encoded
         normalization_data = df[normalization_mask]
         
         if normalization_data.empty:
-            raise ValueError(f"No data found for target class {target_class} in chip {chip_exclude}")
+            raise ValueError(f"No data found for target class {target_class}")
         
         # Separate peak columns and temperature columns for consistent calculation
         peak_columns = [col for col in normalization_columns if col.startswith('Peak')]

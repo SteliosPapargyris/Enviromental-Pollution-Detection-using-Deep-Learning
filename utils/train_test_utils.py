@@ -93,6 +93,8 @@ def evaluate_encoder_decoder(model_encoder_decoder, test_loader, device, criteri
     model_encoder_decoder.eval()
     model_encoder_decoder.to(device)
     total_test_loss = 0
+    denoised_data = []
+    all_labels = []
 
     with torch.no_grad():
         for inputs, labels in test_loader:
@@ -104,10 +106,16 @@ def evaluate_encoder_decoder(model_encoder_decoder, test_loader, device, criteri
             loss = criterion(denoised_output, labels)
             # loss = criterion(latent_space, labels)
             total_test_loss += loss.item()
+            denoised_data.append(denoised_output.cpu())
+            all_labels.append(labels.cpu())
 
     avg_test_loss = total_test_loss / len(test_loader)
     print(f'Final Test Loss: {avg_test_loss:.6f}')
-    return avg_test_loss
+
+    denoised_data = torch.cat(denoised_data, dim=0)
+    all_labels = torch.cat(all_labels, dim=0)
+
+    return avg_test_loss, denoised_data, all_labels
 
 def evaluate_encoder_decoder_for_classifier(model_encoder_decoder, data_loader, device):
     model_encoder_decoder.eval()

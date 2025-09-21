@@ -5,7 +5,7 @@ import numpy as np
 import warnings
 from utils.path_utils import get_paths_for_normalization
 
-CURRENT_NORMALIZATION = 'class_based_robust'  # Change this to use different methods
+CURRENT_NORMALIZATION = 'class_based_mean_std'  # Change this to use different methods
 num_percentage_of_test_df = 0.9  # Use 10% of test data for merging
 base_path, stats_path = get_paths_for_normalization(CURRENT_NORMALIZATION)
 
@@ -23,8 +23,8 @@ batch_size = 32
 learning_rate = 1e-3
 num_epochs = 500
 num_classes = 4
-chip_exclude = 5
-num_chips = list(range(1, chip_exclude))
+total_num_chips = 5
+num_chips = list(range(1, 6))
 baseline_chip = 4
 chip_column = "Chip"
 class_column = "Class"
@@ -32,7 +32,6 @@ normalization_technique = "standardscaler"
 target_class = 4
 num_chip_selection = 5
 current_path = f"{base_path}"
-test_file_path = f'{base_path}/{chip_exclude}.csv'
 matplotlib.use('Agg')  # Use a non-interactive backend
 torch.manual_seed(seed), torch.cuda.manual_seed_all(seed), np.random.seed(seed), random.seed(seed)
 torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = True, False

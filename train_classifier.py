@@ -1,66 +1,64 @@
 import torch
-from utils.config import *
-from utils.models import LinearDenoiser, ConvDenoiser, Classifier
-from utils.data_utils import load_and_preprocess_data_classifier, tensor_dataset_classifier
-from utils.train_test_utils import train_classifier, evaluate_classifier, evaluate_encoder_decoder_for_classifier
-from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses, plot_denoised_mean_feature_per_class_before_classifier
 import torch.nn as nn
 import torch.optim as optim
+import pandas as pd
+import os
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from utils.config import *
+from utils.models import Classifier
+from utils.train_test_utils import train_classifier, evaluate_classifier
+from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses
 
-print("=== Classifier Training Pipeline Started ===")
+data_path = f"out/{norm_name}/merged_autoencoder_outputs_{norm_name}.csv"
 
-print(f"Training classifier with normalization: {norm_description}")
-print(f"File naming suffix: {norm_name}")
+dataset = pd.read_csv(data_path)
+print(f"Dataset shape: {dataset.shape}")
+print(f"Dataset columns: {list(dataset.columns)}")
+if 'Class' in dataset.columns:
+    print(f"Unique classes: {dataset['Class'].unique()}")
+    print(f"Class distribution: {dataset['Class'].value_counts()}")
+else:
+    print("No 'Class' column found!")
 
-# Load the shuffled dataset for the current chip
-X_train, y_train, X_val, y_val, X_test, y_test, label_encoder = load_and_preprocess_data_classifier(file_path=f"{current_path}/shuffled_dataset/merged.csv", finetune=False)
+feature_columns = [col for col in dataset.columns if col not in ['Chip', 'Class', 'labels']]
+X = dataset[feature_columns].values
+y = dataset['Class'].values
 
-# Create data loaders for raw data
-train_loader, val_loader, test_loader = tensor_dataset_classifier(batch_size=batch_size, X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)
+label_encoder = LabelEncoder()
+y_encoded = label_encoder.fit_transform(y)
+print(f"Number of classes after encoding: {len(label_encoder.classes_)}")
+print(f"Encoded classes: {label_encoder.classes_}")
 
-# Load the appropriate autoencoder model based on normalization method
-autoencoder_model_name = f'autoencoder_{norm_name}_train'
-autoencoder_path = f"pths/{norm_name}/{autoencoder_model_name}.pth"
+X_train, X_temp, y_train, y_temp = train_test_split(X, y_encoded, test_size=0.3, random_state=42, stratify=y_encoded)
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42, stratify=y_temp)
 
-print(f"Loading autoencoder model: {autoencoder_path}")
-model_autoencoder = LinearDenoiser(input_size=33).to(device)
-model_autoencoder.load_state_dict(torch.load(autoencoder_path, map_location=device))
-model_autoencoder.eval()
+X_train_tensor = torch.tensor(X_train, dtype=torch.float32).unsqueeze(1)
+X_val_tensor = torch.tensor(X_val, dtype=torch.float32).unsqueeze(1)
+X_test_tensor = torch.tensor(X_test, dtype=torch.float32).unsqueeze(1)
+y_train_tensor = torch.tensor(y_train, dtype=torch.long)
+y_val_tensor = torch.tensor(y_val, dtype=torch.long)
+y_test_tensor = torch.tensor(y_test, dtype=torch.long)
 
-model_classifier = Classifier(input_length=33, num_classes=4).to(device)
-
-# Define loss function, optimizer, and scheduler
+model_classifier = Classifier(input_length=X_train_tensor.shape[2], num_classes=len(label_encoder.classes_)).to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model_classifier.parameters(), lr=learning_rate, weight_decay=1e-4)
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=classifier_patience, verbose=True)
+optimizer = optim.Adam(model_classifier.parameters(), lr=0.0001, weight_decay=1e-4)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, verbose=True)
 
-X_train_denoised, y_train = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=train_loader, device=device)
-X_val_denoised, y_val = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=val_loader, device=device)
-X_test_denoised, y_test = evaluate_encoder_decoder_for_classifier(model_encoder_decoder=model_autoencoder, data_loader=test_loader, device=device)
+train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
+val_dataset = torch.utils.data.TensorDataset(X_val_tensor, y_val_tensor)
+test_dataset = torch.utils.data.TensorDataset(X_test_tensor, y_test_tensor)
 
-# Plot of mean denoised feature per class before classifier training with dynamic naming
-plot_denoised_mean_feature_per_class_before_classifier(
-    X_tensor=X_train_denoised,
-    y_tensor=y_train,
-    save_path=f'out/{norm_name}/denoised_{norm_name}_train_mean_feature_per_class.png',
-    title=f'Mean Denoised {norm_description} Peaks per Class before Classifier'
-)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-# Create new DataLoaders for classifier training
-train_dataset = torch.utils.data.TensorDataset(X_train_denoised, y_train)
-val_dataset = torch.utils.data.TensorDataset(X_val_denoised, y_val)
-test_dataset = torch.utils.data.TensorDataset(X_test_denoised, y_test)
+classifier_model_name = f'classifier_transfer_{norm_name}_to_baseline_{baseline_chip}'
 
-denoised_train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-denoised_val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-denoised_test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-
-# Train the model on the current chip with dynamic naming
-classifier_model_name = f'classifier_{norm_name}_train'
 model_classifier, training_losses, validation_losses = train_classifier(
     epochs=num_epochs,
-    train_loader=denoised_train_loader,
-    val_loader=denoised_val_loader,
+    train_loader=train_loader,
+    val_loader=val_loader,
     optimizer=optimizer,
     criterion=criterion,
     scheduler=scheduler,
@@ -70,46 +68,31 @@ model_classifier, training_losses, validation_losses = train_classifier(
     early_stopping_patience=classifier_early_stopping
 )
 
-# Plot training and validation losses with dynamic naming
 plot_train_and_val_losses(training_losses, validation_losses, classifier_model_name)
 
-# Evaluate on TRAINING data with dynamic naming
-print("Evaluating on training data...")
-train_eval_name = f'classifier_{norm_name}_training_eval'
 train_acc, train_prec, train_rec, train_f1, train_conf_mat = evaluate_classifier(
     model_classifier=model_classifier,
-    test_loader=denoised_train_loader,  # Training data
+    test_loader=train_loader,
     device=device,
     label_encoder=label_encoder,
-    model_name=train_eval_name
+    model_name=f'classifier_transfer_{norm_name}_training_eval'
 )
-plot_conf_matrix(train_conf_mat, label_encoder, model_name=train_eval_name)
+plot_conf_matrix(train_conf_mat, label_encoder, model_name=f'classifier_transfer_{norm_name}_training_eval')
 
-# Evaluate on TEST data with dynamic naming
-print("Evaluating on test data...")
-test_eval_name = f'classifier_{norm_name}_validation_eval'
+val_acc, val_prec, val_rec, val_f1, val_conf_mat = evaluate_classifier(
+    model_classifier=model_classifier,
+    test_loader=val_loader,
+    device=device,
+    label_encoder=label_encoder,
+    model_name=f'classifier_transfer_{norm_name}_validation_eval'
+)
+plot_conf_matrix(val_conf_mat, label_encoder, model_name=f'classifier_transfer_{norm_name}_validation_eval')
+
 test_acc, test_prec, test_rec, test_f1, test_conf_mat = evaluate_classifier(
     model_classifier=model_classifier,
-    test_loader=denoised_test_loader,   # Test data
+    test_loader=test_loader,
     device=device,
     label_encoder=label_encoder,
-    model_name=test_eval_name
+    model_name=f'classifier_transfer_{norm_name}_test_eval'
 )
-plot_conf_matrix(test_conf_mat, label_encoder, model_name=test_eval_name)
-
-# Compare results with normalization info
-print(f"\n=== Classifier Training Results ===")
-print(f"Normalization Method: {norm_description}")
-print(f"Training Accuracy: {train_acc:.4f}")
-print(f"Test Accuracy: {test_acc:.4f}")
-print(f"Generalization Gap: {train_acc - test_acc:.4f}")
-print(f"\n📁 Generated Files in out/{norm_name}/:")
-print(f"   • denoised_{norm_name}_train_mean_feature_per_class.png")
-print(f"   • denoised_{norm_name}_train_mean_feature_per_class_peaks_only.png (zoomed)")
-print(f"   • train_and_val_loss_{classifier_model_name}.png")
-print(f"   • pths/{norm_name}/{classifier_model_name}.pth")
-print(f"   • confusion_matrix_{train_eval_name}.jpg")
-print(f"   • confusion_matrix_{test_eval_name}.jpg")
-print(f"   • {train_eval_name}.csv")
-print(f"   • {test_eval_name}.csv")
-print("=== Classifier Training Completed ===")
+plot_conf_matrix(test_conf_mat, label_encoder, model_name=f'classifier_transfer_{norm_name}_test_eval')

@@ -3,10 +3,11 @@ import torch.nn.functional as F
 
 
 class ConvDenoiser(nn.Module):
-    def __init__(self, input_size=33):
+    def __init__(self, input_size=33, output_size=32):
         super(ConvDenoiser, self).__init__()
-        
+
         self.input_size = input_size
+        self.output_size = output_size
         
         ## encoder layers ##
         self.conv1 = nn.Conv1d(1, 32, kernel_size=3, padding=1)
@@ -31,8 +32,6 @@ class ConvDenoiser(nn.Module):
         self.conv_out = nn.Conv1d(16, 1, kernel_size=3, padding=1)
 
     def forward(self, x):
-        original_length = x.size(-1)
-        
         ## encode ##
         z = self.pool1(F.elu(self.bn1(self.conv1(x))))  # ELU for better negative handling
         z = self.pool2(F.elu(self.bn2(self.conv2(z))))
@@ -53,17 +52,18 @@ class ConvDenoiser(nn.Module):
         x = F.elu(self.t_conv2(x))
         x = self.conv_out(x)  # No activation for reconstruction
         
-        # Use adaptive interpolation to match exact input size
-        if x.size(-1) != original_length:
-            x = F.interpolate(x, size=original_length, mode='linear', align_corners=False)
+        # Use adaptive interpolation to match target output size
+        if x.size(-1) != self.output_size:
+            x = F.interpolate(x, size=self.output_size, mode='linear', align_corners=False)
         
         return x, z_latent
 
 class LinearDenoiser(nn.Module):
-    def __init__(self, input_size=33):
+    def __init__(self, input_size=33, output_size=32):
         super(LinearDenoiser, self).__init__()
-        
+
         self.input_size = input_size
+        self.output_size = output_size
         
         ## encoder layers ##
         self.linear1 = nn.Linear(input_size, 32)
@@ -87,7 +87,7 @@ class LinearDenoiser(nn.Module):
         self.bn5 = nn.BatchNorm1d(128)
         self.dropout4 = nn.Dropout(0.2)
         
-        self.linear_out = nn.Linear(128, input_size)
+        self.linear_out = nn.Linear(128, output_size)
         
     def forward(self, x):
         if len(x.shape) == 3:

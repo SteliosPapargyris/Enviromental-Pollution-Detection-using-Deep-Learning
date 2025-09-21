@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import numpy as np
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 from utils.config import *
 
 def plot_raw_mean_feature_per_class(df, class_column='Class', save_path='raw_mean_feature_per_class.png', title='Raw Mean Feature per Class', log_y=False):
@@ -95,36 +99,6 @@ def plot_robust_normalized_mean_feature_per_class(df, class_column='Class', save
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
     print(f"Robust scaled plot saved to: {save_path}")
-
-
-def plot_peak_to_peak_normalized_mean_feature_per_class(df, class_column='Class', save_path='peak_to_peak_normalized_mean_feature_per_class.png', title='Peak-to-Peak Normalized Mean Feature per Class'):
-    """
-    Plots the mean peak-to-peak normalized features per class from a DataFrame.
-
-    Args:
-        df (pd.DataFrame): Input dataframe containing peak-to-peak normalized features and a class column.
-        class_column (str): Name of the column containing class labels.
-        save_path (str): Path to save the plot.
-        title (str): Plot title.
-    """
-    peak_cols = [col for col in df.columns if col.startswith('Peak')]
-    mean_per_class = df.groupby(class_column)[peak_cols].mean()
-
-    x = np.arange(1, len(peak_cols) + 1)
-
-    plt.figure(figsize=(12, 6))
-    for class_label, row in mean_per_class.iterrows():
-        plt.plot(x, row.values, label=f'Class {int(class_label)}', marker='o', markersize=3)
-
-    plt.title(title)
-    plt.xlabel('Peak Index (1–32)')
-    plt.ylabel('Peak-to-Peak Normalized Value (x / range)')
-    plt.legend()
-    plt.grid(True, alpha=0.7)
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.show()
-    print(f"Peak-to-peak normalized plot saved to: {save_path}")
 
 
 def plot_conf_matrix(conf_matrix, label_encoder, model_name, output_dir=None):
@@ -400,3 +374,198 @@ def _create_peaks_only_plot(X_tensor, y_tensor, save_path, title):
     print(f"Zoomed peaks plot saved: {save_path}")
     plt.close()  # Close to avoid display
 
+def apply_tsne_and_plot(data, labels, title, save_path, perplexity=30, n_iter=1000):
+    """Apply t-SNE to data and create visualization plot with class labels"""
+    print(f"Applying t-SNE to {title}...")
+    print(f"Data shape: {data.shape}, Labels shape: {labels.shape}")
+    print(f"Unique classes: {np.unique(labels)}")
+
+    # Ensure data and labels have matching first dimension
+    if data.shape[0] != labels.shape[0]:
+        print(f"Warning: Data samples ({data.shape[0]}) != Labels ({labels.shape[0]})")
+        min_samples = min(data.shape[0], labels.shape[0])
+        data = data[:min_samples]
+        labels = labels[:min_samples]
+        print(f"Truncated to {min_samples} samples")
+
+    # Apply t-SNE
+    tsne = TSNE(n_components=2, perplexity=perplexity, n_iter=n_iter, random_state=42)
+    tsne_result = tsne.fit_transform(data)
+    print(f"t-SNE result shape: {tsne_result.shape}")
+
+    # Create plot
+    plt.figure(figsize=(10, 8))
+    unique_labels = np.unique(labels)
+
+    # Define colors for classes
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # Blue, Orange, Green, Red
+
+    for i, class_label in enumerate(unique_labels):
+        mask = labels == class_label
+        points = tsne_result[mask]
+        color = colors[i % len(colors)]
+        plt.scatter(points[:, 0], points[:, 1], c=color, label=f'Class {class_label}', alpha=0.7, s=50)
+
+    plt.title(f't-SNE Visualization: {title}')
+    plt.xlabel('t-SNE Component 1')
+    plt.ylabel('t-SNE Component 2')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Saved t-SNE plot: {save_path}")
+
+def apply_tsne_and_plot_chips(data, labels, title, save_path, perplexity=30, n_iter=1000):
+    """Apply t-SNE to data and create visualization plot with chip labels"""
+    print(f"Applying t-SNE to {title} (Chips)...")
+    print(f"Data shape: {data.shape}, Labels shape: {labels.shape}")
+    print(f"Unique chips: {np.unique(labels)}")
+
+    # Ensure data and labels have matching first dimension
+    if data.shape[0] != labels.shape[0]:
+        print(f"Warning: Data samples ({data.shape[0]}) != Labels ({labels.shape[0]})")
+        min_samples = min(data.shape[0], labels.shape[0])
+        data = data[:min_samples]
+        labels = labels[:min_samples]
+        print(f"Truncated to {min_samples} samples")
+
+    # Apply t-SNE
+    tsne = TSNE(n_components=2, perplexity=perplexity, n_iter=n_iter, random_state=42)
+    tsne_result = tsne.fit_transform(data)
+    print(f"t-SNE result shape: {tsne_result.shape}")
+
+    # Create plot
+    plt.figure(figsize=(10, 8))
+    unique_labels = np.unique(labels)
+
+    # Define colors for chips - using different colors than classes
+    colors = ['#e377c2', '#7f7f7f', '#bcbd22', '#17becf', '#ff9896']  # Pink, Gray, Olive, Cyan, Light Red
+
+    for i, chip_label in enumerate(unique_labels):
+        mask = labels == chip_label
+        points = tsne_result[mask]
+        color = colors[i % len(colors)]
+        plt.scatter(points[:, 0], points[:, 1], c=color, label=f'Chip {int(chip_label)}', alpha=0.7, s=50)
+
+    plt.title(f't-SNE Visualization: {title} (by Chip)')
+    plt.xlabel('t-SNE Component 1')
+    plt.ylabel('t-SNE Component 2')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Saved t-SNE plot: {save_path}")
+
+def get_test_class_labels(X_test, df_full):
+    """Extract the actual class labels for test data by matching with original dataframe"""
+    # Get the first few features from X_test to match with the original dataframe
+    test_features = X_test.iloc[:, :5].values  # Use first 5 features for matching
+
+    # Get the corresponding features from the full dataframe
+    df_features = df_full.iloc[:, 1:6].values  # train_Peak 1-5
+
+    # Find matching rows
+    test_class_labels = []
+
+    for test_row in test_features:
+        # Find the closest match in the full dataframe
+        distances = np.sum((df_features - test_row) ** 2, axis=1)
+        closest_idx = np.argmin(distances)
+
+        # Get the train_Class for this row
+        class_label = df_full.iloc[closest_idx]['train_Class']
+        test_class_labels.append(class_label)
+
+    return np.array(test_class_labels)
+
+def get_test_chip_labels(X_test, df_full):
+    """Extract the actual chip labels for test data by matching with original dataframe"""
+    # Get the first few features from X_test to match with the original dataframe
+    test_features = X_test.iloc[:, :5].values  # Use first 5 features for matching
+
+    # Get the corresponding features from the full dataframe
+    df_features = df_full.iloc[:, 1:6].values  # train_Peak 1-5
+
+    # Find matching rows
+    test_chip_labels = []
+
+    for test_row in test_features:
+        # Find the closest match in the full dataframe
+        distances = np.sum((df_features - test_row) ** 2, axis=1)
+        closest_idx = np.argmin(distances)
+
+        # Get the train_Chip for this row
+        chip_label = df_full.iloc[closest_idx]['train_Chip']
+        test_chip_labels.append(chip_label)
+
+    return np.array(test_chip_labels)
+
+def extract_representations_with_class_labels(model, data_loader, device, X_test, df_full):
+    """Extract decoder outputs, latent representations, and actual class labels from the model"""
+    model.eval()
+    decoder_outputs = []
+    latent_representations = []
+
+    with torch.no_grad():
+        for batch_data, batch_labels in data_loader:
+            batch_data = batch_data.to(device)
+
+            # Get model outputs (decoder output and latent representation)
+            decoder_output, latent_repr = model(batch_data)
+
+            # Store results
+            decoder_outputs.append(decoder_output.cpu().numpy())
+            latent_representations.append(latent_repr.cpu().numpy())
+
+    # Concatenate all batches
+    decoder_outputs = np.concatenate(decoder_outputs, axis=0)
+    latent_representations = np.concatenate(latent_representations, axis=0)
+
+    # Reshape decoder outputs if needed (remove extra dimensions)
+    if decoder_outputs.ndim > 2:
+        decoder_outputs = decoder_outputs.reshape(decoder_outputs.shape[0], -1)
+
+    # Get the actual class labels from the original data
+    actual_class_labels = get_test_class_labels(X_test, df_full)
+
+    print(f"Final shapes - Decoder: {decoder_outputs.shape}, Latent: {latent_representations.shape}, Class Labels: {actual_class_labels.shape}")
+    print(f"Unique classes found: {np.unique(actual_class_labels)}")
+    print(f"Class distribution: {np.bincount(actual_class_labels.astype(int))}")
+
+    return decoder_outputs, latent_representations, actual_class_labels
+
+def extract_representations_with_chip_labels(model, data_loader, device, X_test, df_full):
+    """Extract decoder outputs, latent representations, and actual chip labels from the model"""
+    model.eval()
+    decoder_outputs = []
+    latent_representations = []
+
+    with torch.no_grad():
+        for batch_data, batch_labels in data_loader:
+            batch_data = batch_data.to(device)
+
+            # Get model outputs (decoder output and latent representation)
+            decoder_output, latent_repr = model(batch_data)
+
+            # Store results
+            decoder_outputs.append(decoder_output.cpu().numpy())
+            latent_representations.append(latent_repr.cpu().numpy())
+
+    # Concatenate all batches
+    decoder_outputs = np.concatenate(decoder_outputs, axis=0)
+    latent_representations = np.concatenate(latent_representations, axis=0)
+
+    # Reshape decoder outputs if needed (remove extra dimensions)
+    if decoder_outputs.ndim > 2:
+        decoder_outputs = decoder_outputs.reshape(decoder_outputs.shape[0], -1)
+
+    # Get the actual chip labels from the original data
+    actual_chip_labels = get_test_chip_labels(X_test, df_full)
+
+    print(f"Final shapes - Decoder: {decoder_outputs.shape}, Latent: {latent_representations.shape}, Chip Labels: {actual_chip_labels.shape}")
+    print(f"Unique chips found: {np.unique(actual_chip_labels)}")
+    print(f"Chip distribution: {np.bincount(actual_chip_labels.astype(int))}")
+
+    return decoder_outputs, latent_representations, actual_chip_labels

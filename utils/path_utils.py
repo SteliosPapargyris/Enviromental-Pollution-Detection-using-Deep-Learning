@@ -12,6 +12,10 @@ def get_paths_for_normalization(norm_method):
         'class_based_robust': {
             'base_path': 'data/out/normalized_robust',
             'stats_file': 'robust_normalization_statistics.json'
+        },
+        'none': {
+            'base_path': 'data/out',
+            'stats_file': 'raw_data.json'
         }
     }
     config = path_configs.get(norm_method, path_configs['class_based_robust'])
