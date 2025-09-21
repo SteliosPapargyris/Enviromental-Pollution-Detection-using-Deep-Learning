@@ -23,14 +23,13 @@ batch_size = 32
 learning_rate = 1e-3
 num_epochs = 500
 num_classes = 4
-total_num_chips = 5
-num_chips = list(range(1, 6))
+total_num_chips = 10
+num_chips = list(range(1, total_num_chips+1))
 baseline_chip = 4
 chip_column = "Chip"
 class_column = "Class"
-normalization_technique = "standardscaler"
 target_class = 4
-num_chip_selection = 5
+num_chip_selection = 10
 current_path = f"{base_path}"
 matplotlib.use('Agg')  # Use a non-interactive backend
 torch.manual_seed(seed), torch.cuda.manual_seed_all(seed), np.random.seed(seed), random.seed(seed)
