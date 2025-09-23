@@ -10,7 +10,7 @@ from utils.models import Classifier
 from utils.train_test_utils import train_classifier, evaluate_classifier
 from utils.plot_utils import plot_conf_matrix, plot_train_and_val_losses
 
-data_path = f"out/{norm_name}/merged_autoencoder_outputs_{norm_name}.csv"
+data_path = f"{output_base_dir}/merged_autoencoder_outputs_{norm_name}.csv"
 
 dataset = pd.read_csv(data_path)
 print(f"Dataset shape: {dataset.shape}")
@@ -30,6 +30,7 @@ y_encoded = label_encoder.fit_transform(y)
 print(f"Number of classes after encoding: {len(label_encoder.classes_)}")
 print(f"Encoded classes: {label_encoder.classes_}")
 
+
 X_train, X_temp, y_train, y_temp = train_test_split(X, y_encoded, test_size=0.3, random_state=42, stratify=y_encoded)
 X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.33, random_state=42, stratify=y_temp)
 
@@ -42,8 +43,8 @@ y_test_tensor = torch.tensor(y_test, dtype=torch.long)
 
 model_classifier = Classifier(input_length=X_train_tensor.shape[2], num_classes=len(label_encoder.classes_)).to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model_classifier.parameters(), lr=0.0001, weight_decay=1e-4)
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, verbose=True)
+optimizer = optim.Adam(model_classifier.parameters(), lr=learning_rate, weight_decay=1e-4)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=classifier_patience, verbose=True)
 
 train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
 val_dataset = torch.utils.data.TensorDataset(X_val_tensor, y_val_tensor)

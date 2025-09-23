@@ -22,13 +22,21 @@ def normalize_all_chips():
     # Apply normalization to all datasets
     normalized_datasets = apply_normalization(chip_files, CURRENT_NORMALIZATION)
 
-    # Save normalized datasets
-    output_dir = Path(f"data/out/{CURRENT_NORMALIZATION.replace('class_based_', '')}")
+    # Save normalized datasets with chip count folder structure based on normalization method
+    method_mapping = {
+        'class_based_mean_std': 'mean_std',
+        'class_based_minmax': 'minmax',
+        'class_based_robust': 'robust'
+    }
+
+    method_suffix = method_mapping.get(CURRENT_NORMALIZATION, 'unknown')
+    output_dir = Path(f"data/out/{method_suffix}/{total_num_chips}chips")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for i, normalized_df in enumerate(normalized_datasets, 1):
-        output_file = output_dir / f"chip_{i}_{CURRENT_NORMALIZATION.replace('class_based_', '')}.csv"
+        output_file = output_dir / f"chip_{i}_{method_suffix}.csv"
         normalized_df.to_csv(output_file, index=False)
+        print(f"Saved: {output_file}")
 
 if __name__ == "__main__":
     normalize_all_chips()

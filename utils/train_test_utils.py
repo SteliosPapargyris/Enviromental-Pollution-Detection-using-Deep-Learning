@@ -117,26 +117,6 @@ def evaluate_encoder_decoder(model_encoder_decoder, test_loader, device, criteri
 
     return avg_test_loss, denoised_data, all_labels
 
-def evaluate_encoder_decoder_for_classifier(model_encoder_decoder, data_loader, device):
-    model_encoder_decoder.eval()
-    model_encoder_decoder.to(device)
-    denoised_data=[]
-    all_labels = []
-
-    with torch.no_grad():
-        for inputs, labels in data_loader:
-            inputs = inputs.to(device)
-            labels = labels.to(device)
-            inputs = inputs.unsqueeze(1)
-            denoised_output, latent_space = model_encoder_decoder(inputs)
-            denoised_data.append(denoised_output.cpu())
-            # latent_space.append(latent_space.cpu())
-            all_labels.append(labels.cpu())
-
-    denoised_data = torch.cat(denoised_data, dim=0)
-    all_labels = torch.cat(all_labels, dim=0)
-    return denoised_data, all_labels
-
 def train_classifier(epochs, train_loader, val_loader, optimizer, criterion, scheduler, model_classifier, device, model_classifier_name, early_stopping_patience):
     early_stopping_counter = 0
     model_classifier.to(device)
@@ -255,21 +235,8 @@ def evaluate_classifier(model_classifier, test_loader, device, label_encoder, mo
     )
     print(class_report)
 
-    # Create normalization-specific directory structure for outputs
-    # Extract norm type from model name (e.g., "classifier_minmax_normalized_test" -> "minmax_normalized")
-    name_parts = model_name.split('_')
-    if len(name_parts) >= 3 and name_parts[0] == 'classifier':
-        # Find normalization type by excluding 'classifier' and known suffixes like 'training', 'validation', 'test', 'eval'
-        norm_parts = name_parts[1:]  # Remove 'classifier'
-        # Remove common suffixes
-        if norm_parts[-1] in ['training', 'validation', 'test', 'eval']:
-            norm_parts = norm_parts[:-1]
-        if norm_parts[-1] in ['training', 'validation', 'test', 'eval']:  # Check again for double suffixes
-            norm_parts = norm_parts[:-1]
-        norm_type = '_'.join(norm_parts)
-    else:
-        norm_type = 'default'
-    output_dir = f'out/{norm_type}'
+    # Use the dynamic output directory from config
+    output_dir = output_base_dir
     os.makedirs(output_dir, exist_ok=True)
     
     # Convert the classification report to a DataFrame

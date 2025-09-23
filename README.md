@@ -21,7 +21,7 @@ pip install -r requirements.txt
 
 Run the autoencoder and classifier and test script:
 ```bash
-python apply_normalization.py && python train_autoencoder.py && python train_classifier.py && python test.py
+python generate_interferogram.py && python create_csv_dataset.py && python normalize_chips.py && python train_autoencoder.py && python train_classifier.py
 ```
 
 ## 🛠 Project Structure

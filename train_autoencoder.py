@@ -7,11 +7,22 @@ import os
 from torch.utils.data import TensorDataset, DataLoader
 from utils.data_utils import dataset_creation, load_and_preprocess_data_autoencoder_prenormalized, tensor_dataset_autoencoder_peaks_only
 from utils.train_test_utils import train_encoder_decoder, evaluate_encoder_decoder
-from utils.plot_utils import plot_train_and_val_losses
+from utils.plot_utils import plot_train_and_val_losses, plot_transferred_data_combined, plot_denoised_data_combined
 from utils.models import LinearDenoiser
 from utils.config import *
 
 normalized_datasets = dataset_creation(num_chips, baseline_chip=baseline_chip)
+
+# Storage for combined plots across all chips
+all_transferred_train = []
+all_transferred_val = []
+all_transferred_test = []
+all_denoised_train = []
+all_denoised_val = []
+all_denoised_test = []
+all_train_labels = []
+all_val_labels = []
+all_test_labels = []
 
 for chip_idx, df in enumerate(normalized_datasets):
     chip_id = num_chips[chip_idx]
@@ -64,6 +75,7 @@ for chip_idx, df in enumerate(normalized_datasets):
         device=device
     )
 
+
     avg_val_loss, denoised_val_data, val_labels = evaluate_encoder_decoder(
         model_encoder_decoder=model_denoiser,
         test_loader=val_loader,
@@ -79,7 +91,7 @@ for chip_idx, df in enumerate(normalized_datasets):
     )
 
     # Save first autoencoder outputs (before transfer)
-    autoencoder_output_path = f"out/{norm_name}/autoencoder_output_chip_{chip_id}_{norm_name}.csv"
+    autoencoder_output_path = f"{output_base_dir}/autoencoder_output_chip_{chip_id}_{norm_name}.csv"
     all_denoised_data = torch.cat([denoised_train_data, denoised_val_data, denoised_test_data], dim=0)
     all_indices = np.concatenate([indices_train, indices_val, indices_test])
 
@@ -91,7 +103,7 @@ for chip_idx, df in enumerate(normalized_datasets):
     denoised_df.to_csv(autoencoder_output_path, index=False)
 
     X_baseline_train, y_baseline_train, X_baseline_val, y_baseline_val, X_baseline_test, y_baseline_test, baseline_label_encoder, _, _, _ = load_and_preprocess_data_autoencoder_prenormalized(
-        file_path=f"data/out/mean_std/chip_{baseline_chip}_mean_std.csv", finetune=False
+        file_path=f"data/out/mean_std/{total_num_chips}chips/chip_{baseline_chip}_mean_std.csv", finetune=False
     )
     X_baseline_train.drop(columns=['Chip'], inplace=True)
     X_baseline_val.drop(columns=['Chip'], inplace=True)
@@ -148,7 +160,25 @@ for chip_idx, df in enumerate(normalized_datasets):
         device=device
     )
 
-    transfer_output_path = f"out/{norm_name}/transfer_autoencoder_output_chip_{chip_id}_to_baseline_{baseline_chip}_{norm_name}.csv"
+    # Plot the transferred/cleaned data with actual class labels
+    if class_col is not None:
+        # Get actual class labels for train/val/test splits using the indices
+        train_class_labels = torch.tensor(original_df.iloc[indices_train][class_col].values, dtype=torch.long)
+        val_class_labels = torch.tensor(original_df.iloc[indices_val][class_col].values, dtype=torch.long)
+        test_class_labels = torch.tensor(original_df.iloc[indices_test][class_col].values, dtype=torch.long)
+
+        # Store data for combined plots
+        all_transferred_train.append(transferred_train_data)
+        all_transferred_val.append(transferred_val_data)
+        all_transferred_test.append(transferred_test_data)
+        all_denoised_train.append(denoised_train_data)
+        all_denoised_val.append(denoised_val_data)
+        all_denoised_test.append(denoised_test_data)
+        all_train_labels.append(train_class_labels)
+        all_val_labels.append(val_class_labels)
+        all_test_labels.append(test_class_labels)
+
+    transfer_output_path = f"{output_base_dir}/transfer_autoencoder_output_chip_{chip_id}_to_baseline_{baseline_chip}_{norm_name}.csv"
 
     all_transferred_data = torch.cat([transferred_train_data, transferred_val_data, transferred_test_data], dim=0)
 
@@ -165,7 +195,7 @@ for chip_idx, df in enumerate(normalized_datasets):
 transfer_output_files = []
 for chip_idx, df in enumerate(normalized_datasets):
     chip_id = num_chips[chip_idx]
-    transfer_file = f"out/{norm_name}/transfer_autoencoder_output_chip_{chip_id}_to_baseline_{baseline_chip}_{norm_name}.csv"
+    transfer_file = f"{output_base_dir}/transfer_autoencoder_output_chip_{chip_id}_to_baseline_{baseline_chip}_{norm_name}.csv"
     if os.path.exists(transfer_file):
         transfer_output_files.append(transfer_file)
 
@@ -176,14 +206,14 @@ if transfer_output_files:
         all_transfer_outputs.append(df)
 
     merged_transfer_outputs = pd.concat(all_transfer_outputs, ignore_index=True)
-    merged_output_path = f"out/{norm_name}/merged_transfer_autoencoder_outputs_{norm_name}_to_baseline_{baseline_chip}.csv"
+    merged_output_path = f"{output_base_dir}/merged_transfer_autoencoder_outputs_{norm_name}_to_baseline_{baseline_chip}.csv"
     merged_transfer_outputs.to_csv(merged_output_path, index=False)
 
 # Merge first autoencoder outputs
 autoencoder_output_files = []
 for chip_idx, df in enumerate(normalized_datasets):
     chip_id = num_chips[chip_idx]
-    autoencoder_file = f"out/{norm_name}/autoencoder_output_chip_{chip_id}_{norm_name}.csv"
+    autoencoder_file = f"{output_base_dir}/autoencoder_output_chip_{chip_id}_{norm_name}.csv"
     if os.path.exists(autoencoder_file):
         autoencoder_output_files.append(autoencoder_file)
 
@@ -194,5 +224,19 @@ if autoencoder_output_files:
         all_autoencoder_outputs.append(df)
 
     merged_autoencoder_outputs = pd.concat(all_autoencoder_outputs, ignore_index=True)
-    merged_autoencoder_path = f"out/{norm_name}/merged_autoencoder_outputs_{norm_name}.csv"
+    merged_autoencoder_path = f"{output_base_dir}/merged_autoencoder_outputs_{norm_name}.csv"
     merged_autoencoder_outputs.to_csv(merged_autoencoder_path, index=False)
+
+# Create combined plots across all chips
+if all_transferred_train:
+    print(f"Creating combined transferred plots across all {total_num_chips} chips...")
+    plot_transferred_data_combined(all_transferred_train, all_train_labels, 'train')
+    plot_transferred_data_combined(all_transferred_val, all_val_labels, 'val')
+    plot_transferred_data_combined(all_transferred_test, all_test_labels, 'test')
+
+if all_denoised_train:
+    print(f"Creating combined denoised plots across all {total_num_chips} chips...")
+    plot_denoised_data_combined(all_denoised_train, all_train_labels, 'train')
+    plot_denoised_data_combined(all_denoised_val, all_val_labels, 'val')
+    plot_denoised_data_combined(all_denoised_test, all_test_labels, 'test')
+
