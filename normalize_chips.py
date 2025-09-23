@@ -7,9 +7,9 @@ def normalize_all_chips():
     """Normalize all chip CSV files using the current normalization method"""
 
     chip_files = []
-    data_dir = Path("data/out")
+    data_dir = Path(f"data/out/{total_num_chips}chips")
 
-    # Load all numbered chip files (1.csv through 5.csv)
+    # Load all numbered chip files (1.csv through total_num_chips + 1.csv)
     for chip_num in range(1, total_num_chips + 1):
         chip_file = data_dir / f"{chip_num}.csv"
         if chip_file.exists():
