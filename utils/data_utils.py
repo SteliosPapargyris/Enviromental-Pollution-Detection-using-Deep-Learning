@@ -9,7 +9,7 @@ import numpy as np
 from typing import List
 from utils.config import *
 
-def dataset_creation(csv_indices: List[int], baseline_chip: int = None) -> List[pd.DataFrame]:
+def dataset_creation(csv_indices: List[int], baseline_chip: int = None, norm_method: str = None) -> List[pd.DataFrame]:
     """
     Create separate datasets for each CSV, matching each row with rows from the same chip
     that have the same class and temperature = 25°C.
@@ -17,6 +17,7 @@ def dataset_creation(csv_indices: List[int], baseline_chip: int = None) -> List[
     Args:
         csv_indices: List of CSV indices to process
         baseline_chip: Not used (kept for compatibility)
+        norm_method: Normalization method folder name (e.g., 'mean_std', 'minmax', 'robust')
 
     Returns:
         List of DataFrames, one for each input CSV
@@ -24,15 +25,19 @@ def dataset_creation(csv_indices: List[int], baseline_chip: int = None) -> List[
     result_dfs = []
 
     for csv_idx in csv_indices:
-        # Load individual CSV
-        df_current = pd.read_csv(f"data/out/mean_std/{total_num_chips}chips/chip_{csv_idx}_mean_std.csv")
-        # Filter for 25°C temperature from the same chip
-        df_current_25c = df_current[df_current['Temperature'] == 25]
+        # Load individual CSV using the specified normalization method
+        df_current = pd.read_csv(f"data/out/{norm_method}/{total_num_chips}chips/chip_{csv_idx}_{norm_method}.csv")
+
+        # Filter for 27°C temperature from the same chip - get all rows within tolerance
+        df_current_27c = df_current[abs(df_current['Temperature'] - 27.0) <= 0.03]
+
+        # Average within each class to get one representative row per class
+        df_current_27c = df_current_27c.groupby('Class').mean().reset_index()
         merged_rows = []
 
         for _, train_row in df_current.iterrows():
             # Match with rows from the same chip that have same class and temp=25°C
-            matching_rows = df_current_25c[df_current_25c['Class'] == train_row['Class']]
+            matching_rows = df_current_27c[df_current_27c['Class'] == train_row['Class']]
 
             for _, match_row in matching_rows.iterrows():
                 train_series = train_row.add_prefix("train_")
@@ -49,7 +54,7 @@ def dataset_creation(csv_indices: List[int], baseline_chip: int = None) -> List[
         # Save to separate file
         output_dir = os.path.join("data/out/", "shuffled_dataset")
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, f"{csv_idx}_self_match_25C.csv")
+        output_path = os.path.join(output_dir, f"{csv_idx}_self_match_27C.csv")
         merged_df.to_csv(output_path, index=False)
 
         result_dfs.append(merged_df)

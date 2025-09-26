@@ -7,11 +7,15 @@ import os
 from torch.utils.data import TensorDataset, DataLoader
 from utils.data_utils import dataset_creation, load_and_preprocess_data_autoencoder_prenormalized, tensor_dataset_autoencoder_peaks_only
 from utils.train_test_utils import train_encoder_decoder, evaluate_encoder_decoder
-from utils.plot_utils import plot_train_and_val_losses, plot_transferred_data_combined, plot_denoised_data_combined
+from utils.plot_utils import plot_train_and_val_losses, plot_transferred_data_combined, plot_denoised_data_combined, plot_normalized_data_distribution
 from utils.models import LinearDenoiser
 from utils.config import *
 
-normalized_datasets = dataset_creation(num_chips, baseline_chip=baseline_chip)
+normalized_datasets = dataset_creation(num_chips, baseline_chip=baseline_chip, norm_method=norm_folder)
+
+# Plot normalized data distribution before autoencoder training
+print("Plotting normalized data distribution...")
+plot_normalized_data_distribution(normalized_datasets, num_chips, norm_name)
 
 # Storage for combined plots across all chips
 all_transferred_train = []

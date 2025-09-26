@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 from utils.apply_normalization import apply_normalization
+from utils.plot_utils import plot_raw_data_distribution
 from utils.config import *
 
 def normalize_all_chips():
@@ -18,6 +19,11 @@ def normalize_all_chips():
 
     if not chip_files:
         return
+
+    # Plot raw data distribution before normalization
+    print("Plotting raw data distribution...")
+    chip_ids = list(range(1, total_num_chips + 1))
+    plot_raw_data_distribution(chip_files, chip_ids, f"out/raw/{total_num_chips}chips")
 
     # Apply normalization to all datasets
     normalized_datasets = apply_normalization(chip_files, CURRENT_NORMALIZATION)
